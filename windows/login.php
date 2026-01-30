@@ -33,26 +33,55 @@ function handleLogin() {
     
     try {
         $pdo = getDBConnection();
-        $stmt = $pdo->prepare("SELECT u.user_id, u.username, u.password_hash, u.email, r.role_name 
+        $stmt = $pdo->prepare("SELECT u.user_id, u.username, u.password_hash, u.email, u.is_locked, u.must_change_password, r.role_name 
                                FROM users u 
                                JOIN roles r ON u.role_id = r.role_id 
-                               WHERE u.username = ? AND u.is_active = 1");
+                               WHERE u.username = ? AND u.is_active = 1 AND u.deleted_at IS NULL");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
         
-        if ($user && verifyPassword($password, $user['password_hash'])) {
-            // Set session variables
-            $_SESSION['user_id'] = $user['user_id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['user_role'] = $user['role_name'];
-            $_SESSION['email'] = $user['email'];
+        if ($user) {
+            if ($user['is_locked']) {
+                $error_message = 'Your account is locked. Please contact the administrator.';
+                return;
+            }
             
-            // Update last login
-            $stmt = $pdo->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?");
-            $stmt->execute([$user['user_id']]);
-            
-            // Redirect to control window
-            redirect('control.php');
+            if (verifyPassword($password, $user['password_hash'])) {
+                // Reset login attempts on success
+                $stmt = $pdo->prepare("UPDATE users SET login_attempts = 0, last_login = CURRENT_TIMESTAMP WHERE user_id = ?");
+                $stmt->execute([$user['user_id']]);
+                
+                // Set session variables
+                $_SESSION['user_id'] = $user['user_id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['user_role'] = $user['role_name'];
+                $_SESSION['email'] = $user['email'];
+                
+                if ($user['must_change_password']) {
+                    $_SESSION['must_change_password'] = true;
+                    redirect('change_password.php');
+                }
+                
+                // Redirect to control window
+                redirect('control.php');
+            } else {
+                // Increment login attempts
+                $stmt = $pdo->prepare("UPDATE users SET login_attempts = login_attempts + 1 WHERE user_id = ?");
+                $stmt->execute([$user['user_id']]);
+                
+                // Check if should lock
+                $stmt = $pdo->prepare("SELECT login_attempts FROM users WHERE user_id = ?");
+                $stmt->execute([$user['user_id']]);
+                $attempts = $stmt->fetchColumn();
+                
+                if ($attempts >= 5) {
+                    $stmt = $pdo->prepare("UPDATE users SET is_locked = 1 WHERE user_id = ?");
+                    $stmt->execute([$user['user_id']]);
+                    $error_message = 'Invalid password. Account has been locked after 5 failed attempts.';
+                } else {
+                    $error_message = 'Invalid username or password.';
+                }
+            }
         } else {
             $error_message = 'Invalid username or password.';
         }

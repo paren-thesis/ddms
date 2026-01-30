@@ -32,10 +32,16 @@ function exportCSV() {
     header('Content-Disposition: attachment; filename="student_payment_summary.csv"');
     $output = fopen('php://output', 'w');
     $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT s.index_no, CONCAT(s.first_name, ' ', s.surname) AS name, s.email, s.academic_year, p.programme_name, s.position, COALESCE(SUM(pay.amount), 0) as total_paid, COUNT(pay.payment_id) as payment_count, GROUP_CONCAT(pay.receipt_no SEPARATOR ', ') as receipt_nos, s.created_at FROM students s LEFT JOIN programmes p ON s.programme_id = p.programme_id LEFT JOIN payments pay ON s.student_id = pay.student_id GROUP BY s.student_id, s.index_no, s.first_name, s.surname, s.email, s.academic_year, p.programme_name, s.position, s.created_at");
+    $sql = "SELECT s.index_no, CONCAT(s.first_name, ' ', s.last_name) AS name, s.email, s.current_academic_year, p.programme_name, s.programme_level, COALESCE(SUM(pay.amount_paid), 0) as total_paid, COUNT(pay.payment_id) as payment_count, GROUP_CONCAT(pay.receipt_no SEPARATOR ', ') as receipt_nos, s.created_at 
+            FROM students s 
+            LEFT JOIN programmes p ON s.programme_id = p.programme_id 
+            LEFT JOIN payments pay ON s.student_id = pay.student_id 
+            WHERE s.deleted_at IS NULL
+            GROUP BY s.student_id, s.index_no, s.first_name, s.last_name, s.email, s.current_academic_year, p.programme_name, s.programme_level, s.created_at";
+    $stmt = $pdo->prepare($sql);
     $stmt->execute();
     while ($row = $stmt->fetch()) {
-        fputcsv($output, [$row['index_no'], $row['name'], $row['email'], $row['academic_year'], $row['programme_name'], $row['position'], $row['total_paid'], $row['payment_count'], $row['receipt_nos'], $row['created_at']]);
+        fputcsv($output, [$row['index_no'], $row['name'], $row['email'], $row['current_academic_year'], $row['programme_name'], $row['programme_level'], $row['total_paid'], $row['payment_count'], $row['receipt_nos'], $row['created_at']]);
     }
     fclose($output);
     exit();
@@ -44,7 +50,13 @@ function exportCSV() {
 // Fetch payment summary
 try {
     $pdo = getDBConnection();
-    $sql = "SELECT s.index_no, s.first_name, s.surname, s.email, s.academic_year, p.programme_name, s.position, COALESCE(SUM(pay.amount), 0) as total_paid, COUNT(pay.payment_id) as payment_count, GROUP_CONCAT(pay.receipt_no SEPARATOR ', ') as receipt_nos, s.created_at FROM students s LEFT JOIN programmes p ON s.programme_id = p.programme_id LEFT JOIN payments pay ON s.student_id = pay.student_id GROUP BY s.student_id, s.index_no, s.first_name, s.surname, s.email, s.academic_year, p.programme_name, s.position, s.created_at ORDER BY s.first_name, s.surname";
+    $sql = "SELECT s.index_no, s.first_name, s.last_name, s.email, s.current_academic_year, p.programme_name, s.programme_level, COALESCE(SUM(pay.amount_paid), 0) as total_paid, COUNT(pay.payment_id) as payment_count, GROUP_CONCAT(pay.receipt_no SEPARATOR ', ') as receipt_nos, s.created_at 
+            FROM students s 
+            LEFT JOIN programmes p ON s.programme_id = p.programme_id 
+            LEFT JOIN payments pay ON s.student_id = pay.student_id 
+            WHERE s.deleted_at IS NULL
+            GROUP BY s.student_id, s.index_no, s.first_name, s.last_name, s.email, s.current_academic_year, p.programme_name, s.programme_level, s.created_at 
+            ORDER BY s.first_name, s.last_name";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $summary = $stmt->fetchAll();

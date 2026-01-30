@@ -45,12 +45,15 @@ function handleAddUser() {
     
     $username = sanitizeInput($_POST['username']);
     $email = sanitizeInput($_POST['email']);
+    $first_name = sanitizeInput($_POST['first_name'] ?? '');
+    $last_name = sanitizeInput($_POST['last_name'] ?? '');
+    $phone = sanitizeInput($_POST['phone'] ?? '');
     $password = $_POST['password'];
     $role = sanitizeInput($_POST['role']);
     
     // Validation
     if (empty($username) || empty($email) || empty($password) || empty($role)) {
-        $error_message = 'All fields are required.';
+        $error_message = 'Username, email, password and role are required.';
         return;
     }
     
@@ -59,8 +62,8 @@ function handleAddUser() {
         return;
     }
     
-    if (strlen($password) < 6) {
-        $error_message = 'Password must be at least 6 characters long.';
+    if (strlen($password) < 8) {
+        $error_message = 'Password must be at least 8 characters long.';
         return;
     }
     
@@ -68,7 +71,7 @@ function handleAddUser() {
         $pdo = getDBConnection();
         
         // Check if username or email already exists
-        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
+        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE (username = ? OR email = ?) AND deleted_at IS NULL");
         $stmt->execute([$username, $email]);
         if ($stmt->fetch()) {
             $error_message = 'Username or email already exists.';
@@ -86,8 +89,8 @@ function handleAddUser() {
         
         // Insert new user
         $hashedPassword = hashPassword($password);
-        $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, role_id, created_at) VALUES (?, ?, ?, ?, NOW())");
-        $stmt->execute([$username, $email, $hashedPassword, $roleData['role_id']]);
+        $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, first_name, last_name, phone, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$username, $email, $hashedPassword, $first_name, $last_name, $phone, $roleData['role_id']]);
         
         $success_message = 'User added successfully.';
     } catch (PDOException $e) {
@@ -101,8 +104,13 @@ function handleEditUser() {
     $user_id = (int)$_POST['user_id'];
     $username = sanitizeInput($_POST['username']);
     $email = sanitizeInput($_POST['email']);
+    $first_name = sanitizeInput($_POST['first_name'] ?? '');
+    $last_name = sanitizeInput($_POST['last_name'] ?? '');
+    $phone = sanitizeInput($_POST['phone'] ?? '');
     $role = sanitizeInput($_POST['role']);
     $password = $_POST['password'];
+    $is_active = isset($_POST['is_active']) ? 1 : 0;
+    $is_locked = isset($_POST['is_locked']) ? 1 : 0;
     
     // Validation
     if (empty($username) || empty($email) || empty($role)) {
@@ -119,7 +127,7 @@ function handleEditUser() {
         $pdo = getDBConnection();
         
         // Check if username or email already exists (excluding current user)
-        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE (username = ? OR email = ?) AND user_id != ?");
+        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE (username = ? OR email = ?) AND user_id != ? AND deleted_at IS NULL");
         $stmt->execute([$username, $email, $user_id]);
         if ($stmt->fetch()) {
             $error_message = 'Username or email already exists.';
@@ -137,16 +145,16 @@ function handleEditUser() {
         
         // Update user
         if (!empty($password)) {
-            if (strlen($password) < 6) {
-                $error_message = 'Password must be at least 6 characters long.';
+            if (strlen($password) < 8) {
+                $error_message = 'Password must be at least 8 characters long.';
                 return;
             }
             $hashedPassword = hashPassword($password);
-            $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, password_hash = ?, role_id = ? WHERE user_id = ?");
-            $stmt->execute([$username, $email, $hashedPassword, $roleData['role_id'], $user_id]);
+            $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, phone = ?, password_hash = ?, role_id = ?, is_active = ?, is_locked = ? WHERE user_id = ?");
+            $stmt->execute([$username, $email, $first_name, $last_name, $phone, $hashedPassword, $roleData['role_id'], $is_active, $is_locked, $user_id]);
         } else {
-            $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, role_id = ? WHERE user_id = ?");
-            $stmt->execute([$username, $email, $roleData['role_id'], $user_id]);
+            $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, phone = ?, role_id = ?, is_active = ?, is_locked = ? WHERE user_id = ?");
+            $stmt->execute([$username, $email, $first_name, $last_name, $phone, $roleData['role_id'], $is_active, $is_locked, $user_id]);
         }
         
         $success_message = 'User updated successfully.';
@@ -170,18 +178,18 @@ function handleDeleteUser() {
         $pdo = getDBConnection();
         
         // Check if user exists
-        $stmt = $pdo->prepare("SELECT username FROM users WHERE user_id = ?");
+        $stmt = $pdo->prepare("SELECT username FROM users WHERE user_id = ? AND deleted_at IS NULL");
         $stmt->execute([$user_id]);
         if (!$stmt->fetch()) {
             $error_message = 'User not found.';
             return;
         }
         
-        // Delete user
-        $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
+        // Soft delete user
+        $stmt = $pdo->prepare("UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = ?");
         $stmt->execute([$user_id]);
         
-        $success_message = 'User deleted successfully.';
+        $success_message = 'User deleted (archived) successfully.';
     } catch (PDOException $e) {
         $error_message = 'Failed to delete user: ' . $e->getMessage();
     }
@@ -190,7 +198,11 @@ function handleDeleteUser() {
 // Fetch all users
 try {
     $pdo = getDBConnection();
-    $sql = "SELECT u.user_id, u.username, u.email, r.role_name, u.created_at FROM users u JOIN roles r ON u.role_id = r.role_id ORDER BY u.created_at DESC";
+    $sql = "SELECT u.*, r.role_name 
+            FROM users u 
+            JOIN roles r ON u.role_id = r.role_id 
+            WHERE u.deleted_at IS NULL 
+            ORDER BY u.created_at DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $users = $stmt->fetchAll();
@@ -269,13 +281,24 @@ try {
                                     <label for="username" class="form-label">Username</label>
                                     <input type="text" class="form-control" id="username" name="username" required>
                                 </div>
-                                
+                                <div class="col-md-3">
+                                    <label for="first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name">
+                                </div>
                                 <div class="col-md-3">
                                     <label for="email" class="form-label">Email</label>
                                     <input type="email" class="form-control" id="email" name="email" required>
                                 </div>
                                 
-                                <div class="col-md-2">
+                                <div class="col-md-3">
+                                    <label for="phone" class="form-label">Phone</label>
+                                    <input type="text" class="form-control" id="phone" name="phone">
+                                </div>
+                                <div class="col-md-3">
                                     <label for="role" class="form-label">Role</label>
                                     <select class="form-control" id="role" name="role" required>
                                         <option value="">Select Role</option>
@@ -286,13 +309,11 @@ try {
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-                                
-                                <div class="col-md-2">
+                                <div class="col-md-3">
                                     <label for="password" class="form-label">Password</label>
                                     <input type="password" class="form-control" id="password" name="password" required>
                                 </div>
-                                
-                                <div class="col-md-2">
+                                <div class="col-md-3">
                                     <label class="form-label">&nbsp;</label>
                                     <button type="submit" class="btn btn-primary w-100">
                                         <i class="fas fa-plus me-1"></i>Add User
@@ -313,9 +334,10 @@ try {
                                     <thead>
                                         <tr>
                                             <th>Username</th>
+                                            <th>Full Name</th>
                                             <th>Email</th>
                                             <th>Role</th>
-                                            <th>Created At</th>
+                                            <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -328,15 +350,34 @@ try {
                                             <?php foreach ($users as $user): ?>
                                                 <tr>
                                                     <td><?php echo sanitizeInput($user['username']); ?></td>
+                                                    <td><?php echo sanitizeInput($user['first_name'] . ' ' . $user['last_name']); ?></td>
                                                     <td><?php echo sanitizeInput($user['email']); ?></td>
                                                     <td>
                                                         <span class="badge bg-primary">
                                                             <?php echo ucfirst(sanitizeInput($user['role_name'])); ?>
                                                         </span>
                                                     </td>
-                                                    <td><?php echo sanitizeInput($user['created_at']); ?></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-outline-primary" onclick="editUser(<?php echo $user['user_id']; ?>, '<?php echo $user['username']; ?>', '<?php echo $user['email']; ?>', '<?php echo $user['role_name']; ?>')">
+                                                        <?php if ($user['is_locked']): ?>
+                                                            <span class="badge bg-danger">Locked</span>
+                                                        <?php elseif ($user['is_active']): ?>
+                                                            <span class="badge bg-success">Active</span>
+                                                        <?php else: ?>
+                                                            <span class="badge bg-secondary">Inactive</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="editUser(
+                                                            <?php echo $user['user_id']; ?>, 
+                                                            '<?php echo addslashes($user['username']); ?>', 
+                                                            '<?php echo addslashes($user['email']); ?>', 
+                                                            '<?php echo addslashes($user['role_name']); ?>',
+                                                            '<?php echo addslashes($user['first_name']); ?>',
+                                                            '<?php echo addslashes($user['last_name']); ?>',
+                                                            '<?php echo addslashes($user['phone']); ?>',
+                                                            <?php echo $user['is_active']; ?>,
+                                                            <?php echo $user['is_locked']; ?>
+                                                        )">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
                                                         <?php if ($user['user_id'] != $_SESSION['user_id']): ?>
@@ -381,6 +422,22 @@ try {
                             <input type="email" class="form-control" id="edit_email" name="email" required>
                         </div>
                         
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="edit_first_name" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="edit_first_name" name="first_name">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="edit_last_name" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="edit_last_name" name="last_name">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="edit_phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="edit_phone" name="phone">
+                        </div>
+
                         <div class="mb-3">
                             <label for="edit_role" class="form-label">Role</label>
                             <select class="form-control" id="edit_role" name="role" required>
@@ -390,6 +447,21 @@ try {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="edit_is_active" name="is_active">
+                                    <label class="form-check-label" for="edit_is_active">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="edit_is_locked" name="is_locked">
+                                    <label class="form-check-label" for="edit_is_locked">Locked</label>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -434,11 +506,16 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function editUser(userId, username, email, role) {
+        function editUser(userId, username, email, role, firstName, lastName, phone, isActive, isLocked) {
             document.getElementById('edit_user_id').value = userId;
             document.getElementById('edit_username').value = username;
             document.getElementById('edit_email').value = email;
             document.getElementById('edit_role').value = role;
+            document.getElementById('edit_first_name').value = firstName;
+            document.getElementById('edit_last_name').value = lastName;
+            document.getElementById('edit_phone').value = phone;
+            document.getElementById('edit_is_active').checked = isActive == 1;
+            document.getElementById('edit_is_locked').checked = isLocked == 1;
             document.getElementById('edit_password').value = '';
             
             new bootstrap.Modal(document.getElementById('editUserModal')).show();

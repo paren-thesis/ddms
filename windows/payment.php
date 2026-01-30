@@ -42,12 +42,14 @@ function handleMakePayment() {
     global $error_message, $success_message;
     
     $student_id = sanitizeInput($_POST['student_id'] ?? '');
+    $due_id = sanitizeInput($_POST['due_id'] ?? '');
     $amount = sanitizeInput($_POST['amount'] ?? '');
     $payment_date = sanitizeInput($_POST['payment_date'] ?? date('Y-m-d'));
     $academic_year = sanitizeInput($_POST['academic_year'] ?? '');
+    $description = sanitizeInput($_POST['description'] ?? 'Dues Payment');
     $created_by = $_SESSION['user_id'] ?? null;
     
-    if (empty($student_id) || empty($amount) || empty($payment_date) || empty($academic_year)) {
+    if (empty($student_id) || empty($due_id) || empty($amount) || empty($payment_date) || empty($academic_year)) {
         $error_message = 'Please fill in all required fields.';
         return;
     }
@@ -58,34 +60,62 @@ function handleMakePayment() {
     
     try {
         $pdo = getDBConnection();
+        $pdo->beginTransaction();
         
         // Check if student exists
-        $stmt = $pdo->prepare("SELECT * FROM students WHERE student_id = ?");
+        $stmt = $pdo->prepare("SELECT s.*, p.programme_name FROM students s JOIN programmes p ON s.programme_id = p.programme_id WHERE s.student_id = ? AND s.deleted_at IS NULL");
         $stmt->execute([$student_id]);
         $student = $stmt->fetch();
         if (!$student) {
-            $error_message = 'Student not found.';
-            return;
+            throw new Exception('Student not found.');
+        }
+        
+        // Get due info
+        $stmt = $pdo->prepare("SELECT * FROM dues WHERE due_id = ?");
+        $stmt->execute([$due_id]);
+        $due = $stmt->fetch();
+        if (!$due) {
+            throw new Exception('Due category not found.');
         }
         
         // Generate unique receipt number
         $receipt_no = generateReceiptNumber();
         
-        // Insert payment
-        $stmt = $pdo->prepare("INSERT INTO payments (student_id, amount, receipt_no, payment_date, academic_year, created_by) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$student_id, $amount, $receipt_no, $payment_date, $academic_year, $created_by]);
+        // Insert payment (Main record)
+        // total_amount is what they should pay (the due amount), amount_paid is what they are paying now
+        // But the schema says total_amount, amount_paid, balance.
+        // Balance = total_amount - amount_paid.
+        $stmt = $pdo->prepare("INSERT INTO payments (receipt_no, student_id, academic_year, total_amount, amount_paid, balance, payment_date, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $balance = $due['amount'] - $amount;
+        $stmt->execute([$receipt_no, $student_id, $academic_year, $due['amount'], $amount, $balance, $payment_date, $created_by]);
+        $payment_id = $pdo->lastInsertId();
         
+        // Insert payment item
+        $stmt = $pdo->prepare("INSERT INTO payment_items (payment_id, due_id, amount, academic_year, description) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$payment_id, $due_id, $amount, $academic_year, $description]);
+        
+        $pdo->commit();
         $success_message = 'Payment processed successfully! Receipt No: ' . $receipt_no;
         
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
         $error_message = 'Failed to process payment: ' . $e->getMessage();
     }
 }
 
-// Get students for dropdown
+// Get dues for dropdown
 try {
     $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT student_id, index_no, first_name, surname FROM students ORDER BY first_name, surname");
+    $stmt = $pdo->prepare("SELECT due_id, due_name, amount, academic_year FROM dues WHERE status = 'Active' ORDER BY academic_year DESC, due_name");
+    $stmt->execute();
+    $dues = $stmt->fetchAll();
+} catch (PDOException $e) {
+    $dues = [];
+}
+
+// Get students for dropdown
+try {
+    $stmt = $pdo->prepare("SELECT student_id, index_no, first_name, last_name FROM students WHERE deleted_at IS NULL ORDER BY first_name, last_name");
     $stmt->execute();
     $students = $stmt->fetchAll();
 } catch (PDOException $e) {
@@ -94,12 +124,14 @@ try {
 
 // Get payment history (latest 20 payments)
 try {
-    $pdo = getDBConnection();
-    $sql = "SELECT p.*, s.index_no, s.first_name, s.surname, u.username AS lecturer
+    $sql = "SELECT p.*, s.index_no, s.first_name, s.last_name, u.username AS lecturer, d.due_name
             FROM payments p
             LEFT JOIN students s ON p.student_id = s.student_id
             LEFT JOIN users u ON p.created_by = u.user_id
-            ORDER BY p.payment_date DESC, p.payment_id DESC
+            LEFT JOIN payment_items pi ON p.payment_id = pi.payment_id
+            LEFT JOIN dues d ON pi.due_id = d.due_id
+            WHERE s.deleted_at IS NULL
+            ORDER BY p.payment_id DESC
             LIMIT 20";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
@@ -167,23 +199,36 @@ try {
                             <form method="POST">
                                 <input type="hidden" name="action" value="make_payment">
                                 <div class="row">
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <div class="mb-3">
-                                            <label for="student_search" class="form-label">Find Student (Index No or Name)</label>
-                                            <input type="text" class="form-control" id="student_search" list="student_list" placeholder="Start typing name or index..." autocomplete="off">
+                                            <label for="student_search" class="form-label">Find Student</label>
+                                            <input type="text" class="form-control" id="student_search" list="student_list" placeholder="Index or Name..." autocomplete="off">
                                             <datalist id="student_list">
                                                 <?php foreach ($students as $student): ?>
                                                     <option data-id="<?php echo $student['student_id']; ?>" 
-                                                            value="<?php echo $student['index_no'] . ' - ' . $student['first_name'] . ' ' . $student['surname']; ?>">
+                                                            value="<?php echo $student['index_no'] . ' - ' . $student['first_name'] . ' ' . $student['last_name']; ?>">
                                                 <?php endforeach; ?>
                                             </datalist>
                                             <input type="hidden" name="student_id" id="student_id" required>
                                             <small id="selection_feedback" class="d-block mt-1"></small>
                                         </div>
                                     </div>
+                                    <div class="col-md-3">
+                                        <div class="mb-3">
+                                            <label for="due_id" class="form-label">Due Category</label>
+                                            <select class="form-control" id="due_id" name="due_id" required>
+                                                <option value="">Select Category</option>
+                                                <?php foreach ($dues as $due): ?>
+                                                    <option value="<?php echo $due['due_id']; ?>" data-amount="<?php echo $due['amount']; ?>">
+                                                        <?php echo $due['due_name'] . ' (' . $due['academic_year'] . ') - GH₵' . $due['amount']; ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <div class="col-md-2">
                                         <div class="mb-3">
-                                            <label for="amount" class="form-label">Amount (GH₵)</label>
+                                            <label for="amount" class="form-label">Paying Now</label>
                                             <input type="number" step="0.01" min="0" class="form-control" id="amount" name="amount" required>
                                         </div>
                                     </div>
@@ -195,17 +240,26 @@ try {
                                     </div>
                                     <div class="col-md-2">
                                         <div class="mb-3">
-                                            <label for="academic_year" class="form-label">Academic Year</label>
+                                            <label for="academic_year" class="form-label">For Year</label>
                                             <input type="text" class="form-control" id="academic_year" name="academic_year" value="<?php echo getCurrentAcademicYear(); ?>" required>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-10">
+                                        <div class="mb-3">
+                                            <label for="description" class="form-label">Description / Remarks</label>
+                                            <input type="text" class="form-control" id="description" name="description" placeholder="Optional notes...">
+                                        </div>
+                                    </div>
                                     <div class="col-md-2 d-flex align-items-end">
-                                        <div class="d-grid w-100">
+                                        <div class="d-grid w-100 mb-3">
                                             <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-credit-card me-2"></i>Pay
+                                                <i class="fas fa-receipt me-2"></i>Post Payment
                                             </button>
                                         </div>
                                     </div>
+                                </div>
                                 </div>
                             </form>
                         </div>
@@ -236,26 +290,33 @@ try {
                                 <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
+                                        <tr>
                                             <th>Receipt No</th>
                                             <th>Student</th>
-                                            <th>Amount</th>
+                                            <th>Category</th>
+                                            <th>Paid (GH₵)</th>
+                                            <th>Balance (GH₵)</th>
                                             <th>Date</th>
-                                            <th>Academic Year</th>
-                                            <th>Lecturer</th>
+                                            <th>Year</th>
+                                            <th>User</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (empty($payments)): ?>
                                             <tr>
-                                                <td colspan="6" class="text-center">No payments found.</td>
+                                                <td colspan="8" class="text-center">No payments found.</td>
                                             </tr>
                                         <?php else: ?>
                                             <?php foreach ($payments as $payment): ?>
                                                 <tr>
-                                                    <td><?php echo sanitizeInput($payment['receipt_no']); ?></td>
-                                                    <td><?php echo sanitizeInput($payment['index_no'] . ' - ' . $payment['first_name'] . ' ' . $payment['surname']); ?></td>
-                                                    <td><?php echo formatCurrency($payment['amount']); ?></td>
-                                                    <td><?php echo sanitizeInput($payment['payment_date']); ?></td>
+                                                    <td>
+                                                        <span class="badge bg-dark"><?php echo sanitizeInput($payment['receipt_no']); ?></span>
+                                                    </td>
+                                                    <td><?php echo sanitizeInput($payment['index_no'] . ' - ' . $payment['first_name'] . ' ' . $payment['last_name']); ?></td>
+                                                    <td><?php echo sanitizeInput($payment['due_name'] ?? 'N/A'); ?></td>
+                                                    <td class="fw-bold text-success"><?php echo formatCurrency($payment['amount_paid']); ?></td>
+                                                    <td class="text-danger"><?php echo formatCurrency($payment['balance']); ?></td>
+                                                    <td><?php echo date('d M, Y', strtotime($payment['payment_date'])); ?></td>
                                                     <td><?php echo sanitizeInput($payment['academic_year']); ?></td>
                                                     <td><?php echo sanitizeInput($payment['lecturer']); ?></td>
                                                 </tr>
@@ -304,6 +365,15 @@ try {
             if (e.target.value === '') {
                 hiddenInput.value = '';
                 if (feedback) feedback.textContent = '';
+            }
+        });
+
+        // Auto-fill amount when due is selected
+        document.getElementById('due_id').addEventListener('change', function(e) {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const amountInput = document.getElementById('amount');
+            if (selectedOption && selectedOption.dataset.amount) {
+                amountInput.value = selectedOption.dataset.amount;
             }
         });
     </script>

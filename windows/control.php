@@ -48,16 +48,16 @@ $academic_year = getCurrentAcademicYear();
 try {
     $pdo = getDBConnection();
     
-    // Total students
-    $stmt = $pdo->query("SELECT COUNT(*) FROM students");
+    // Total students (excluding soft-deleted)
+    $stmt = $pdo->query("SELECT COUNT(*) FROM students WHERE deleted_at IS NULL");
     $total_students = $stmt->fetchColumn();
     
     // Total payments
     $stmt = $pdo->query("SELECT COUNT(*) FROM payments");
     $total_payments = $stmt->fetchColumn();
     
-    // Total revenue
-    $stmt = $pdo->query("SELECT SUM(amount) FROM payments");
+    // Total revenue (using amount_paid from the new schema)
+    $stmt = $pdo->query("SELECT SUM(amount_paid) FROM payments");
     $total_revenue = $stmt->fetchColumn() ?: 0;
     
 } catch (PDOException $e) {

@@ -25,12 +25,14 @@ function handleRegistration() {
     
     $username = sanitizeInput($_POST['new_username'] ?? '');
     $email = sanitizeInput($_POST['new_email'] ?? '');
+    $first_name = sanitizeInput($_POST['first_name'] ?? '');
+    $last_name = sanitizeInput($_POST['last_name'] ?? '');
     $password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     $role = sanitizeInput($_POST['role'] ?? 'student');
     
     // Validation
-    if (empty($username) || empty($email) || empty($password)) {
+    if (empty($username) || empty($email) || empty($password) || empty($first_name) || empty($last_name)) {
         $error_message = 'Please fill in all fields.';
         return;
     }
@@ -45,8 +47,8 @@ function handleRegistration() {
         return;
     }
     
-    if (strlen($password) < 6) {
-        $error_message = 'Password must be at least 6 characters long.';
+    if (strlen($password) < 8) {
+        $error_message = 'Password must be at least 8 characters long.';
         return;
     }
     
@@ -81,13 +83,13 @@ function handleRegistration() {
         
         // Create new user
         $password_hash = hashPassword($password);
-        $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, email, role_id) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$username, $password_hash, $email, $roleData['role_id']]);
+        $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, email, first_name, last_name, role_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?, FALSE)");
+        $stmt->execute([$username, $password_hash, $email, $first_name, $last_name, $roleData['role_id']]);
         
         $success_message = 'Account created successfully! You can now login.';
         
     } catch (PDOException $e) {
-        $error_message = 'Registration failed. Please try again.';
+        $error_message = 'Registration failed: ' . $e->getMessage();
     }
 }
 
@@ -147,6 +149,16 @@ try {
                         <h2 class="form-title">Create New Account</h2>
                         <form method="POST" action="">
                             <input type="hidden" name="action" value="register">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                </div>
+                            </div>
                             <div class="mb-3">
                                 <label for="new_username" class="form-label">Username</label>
                                 <input type="text" class="form-control" id="new_username" name="new_username" required>

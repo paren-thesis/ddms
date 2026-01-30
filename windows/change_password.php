@@ -38,8 +38,8 @@ function handlePasswordChange() {
         return;
     }
     
-    if (strlen($new_password) < 6) {
-        $error_message = 'New password must be at least 6 characters long.';
+    if (strlen($new_password) < 8) {
+        $error_message = 'New password must be at least 8 characters long.';
         return;
     }
     
@@ -47,7 +47,7 @@ function handlePasswordChange() {
         $pdo = getDBConnection();
         
         // Verify current password
-        $stmt = $pdo->prepare("SELECT user_id, password_hash FROM users WHERE username = ? AND is_active = 1");
+        $stmt = $pdo->prepare("SELECT user_id, password_hash FROM users WHERE username = ? AND is_active = 1 AND deleted_at IS NULL");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
         
@@ -56,12 +56,12 @@ function handlePasswordChange() {
             return;
         }
         
-        // Update password
+        // Update password and reset must_change_password
         $new_password_hash = hashPassword($new_password);
-        $stmt = $pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = ?");
+        $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = FALSE WHERE user_id = ?");
         $stmt->execute([$new_password_hash, $user['user_id']]);
         
-        $success_message = 'Password changed successfully!';
+        $success_message = 'Password changed successfully! You can now login with your new password.';
         
     } catch (PDOException $e) {
         $error_message = 'Password change failed. Please try again.';

@@ -2,8 +2,8 @@
 -- Departmental Dues Management System
 
 -- Create database
-CREATE DATABASE IF NOT EXISTS htu_codefest_25;
-USE htu_codefest_25;
+CREATE DATABASE IF NOT EXISTS ddms_database;
+USE ddms_database;
 
 -- Drop tables if they exist (for clean setup)
 DROP TABLE IF EXISTS payments;

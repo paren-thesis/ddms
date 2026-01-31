@@ -44,103 +44,121 @@ try {
     $stmt->execute([$payment_id]);
     $items = $stmt->fetchAll();
 
-    // Initialize FPDF
-    $pdf = new FPDF('P', 'mm', array(210, 148)); // A5 landscape-ish or portrait cut
+    // Initialize FPDF (A4 Portait)
+    $pdf = new FPDF('P', 'mm', 'A4');
     $pdf->AddPage();
-    $pdf->SetAutoPageBreak(true, 10);
+    $pdf->SetAutoPageBreak(false);
 
-    // --- Header ---
-    // COMPSSA Logo
-    if (file_exists('../assets/format/Compssa Logo.png')) {
-        // Center the logo (A5 width is 148mm, logo is 40mm, so x = (148-40)/2 = 54mm)
-        $pdf->Image('../assets/format/Compssa Logo.png', 54, 10, 40);
+    // Function to render one receipt
+    function renderReceipt($pdf, $payment, $items, $yOffset, $copyType) {
+        $startX = 10;
+        $currentY = $yOffset;
+
+        // --- Header ---
+        if (file_exists('../assets/format/Compssa Logo.png')) {
+            $pdf->Image('../assets/format/Compssa Logo.png', 85, $currentY + 5, 40);
+        }
+        
+        $pdf->SetY($currentY + 32);
+        $pdf->SetFont('Arial', 'B', 14);
+        $pdf->Cell(0, 5, 'HO TECHNICAL UNIVERSITY', 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(0, 5, 'COMPUTER SCIENCE STUDENTS ASSOCIATION (COMPSSA)', 0, 1, 'C');
+        
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->SetFillColor(240, 240, 240);
+        $pdf->Cell(0, 8, 'OFFICIAL RECEIPT - ' . strtoupper($copyType), 0, 1, 'C', true);
+        
+        $pdf->Ln(5);
+        $currentY = $pdf->GetY();
+
+        // --- Section 1: Transaction Details ---
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(35, 6, 'Transaction Ref:', 0, 0);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(60, 6, $payment['receipt_no'], 0, 0);
+        
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(30, 6, 'Date:', 0, 0);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(0, 6, date('d-M-Y', strtotime($payment['payment_date'])), 0, 1);
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(35, 6, 'Student ID:', 0, 0);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(60, 6, $payment['index_no'], 0, 0);
+        
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(30, 6, 'Level:', 0, 0);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(0, 6, $payment['programme_level'], 0, 1);
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(35, 6, 'Student Name:', 0, 0);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(0, 6, strtoupper($payment['first_name'] . ' ' . $payment['last_name']), 0, 1);
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(35, 6, 'Programme:', 0, 0);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->MultiCell(0, 5, $payment['programme_name'], 0, 'L');
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(35, 6, 'Academic Year:', 0, 0);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(0, 6, $payment['academic_year'], 0, 1);
+
+        $pdf->Ln(2);
+        $pdf->Line(10, $pdf->GetY(), 200, $pdf->GetY());
+        $pdf->Ln(2);
+
+        // --- Section 2: Financials ---
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(35, 8, 'Amount Paid:', 0, 0);
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->Cell(45, 8, formatCurrency($payment['amount_paid']), 0, 1);
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(35, 6, 'Amount in Words:', 0, 0);
+        $pdf->SetFont('Arial', 'I', 9);
+        $pdf->MultiCell(0, 6, numberToWords($payment['amount_paid']), 0, 'L');
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(35, 6, 'Description:', 0, 0);
+        $description = "Payment for ";
+        $desc_items = [];
+        foreach ($items as $item) $desc_items[] = $item['due_name'];
+        $description .= implode(", ", $desc_items);
+        
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->MultiCell(0, 5, $description, 0, 'L');
+
+        $pdf->Ln(5);
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(35, 6, 'Served By:', 0, 0);
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(0, 6, $payment['processed_by_first'] . ' ' . $payment['processed_by_last'], 0, 1);
+
+        // --- Footer ---
+        $pdf->SetY($yOffset + 125);
+        $pdf->SetFont('Arial', 'I', 8);
+        $pdf->SetTextColor(100, 100, 100);
+        $pdf->Line(10, $yOffset + 124, 200, $yOffset + 124);
+        $pdf->MultiCell(0, 4, "This receipt was issued with the mandate of Ho Technical University COMPSSA. It is a computer-generated document and does not require a physical signature unless otherwise stated.", 0, 'C');
+        $pdf->Cell(0, 4, "Verify at: http://htu.edu.gh/portal", 0, 1, 'C');
+        $pdf->SetTextColor(0, 0, 0);
     }
-    $pdf->Ln(25);
 
-    $pdf->SetFont('Arial', 'B', 14);
-    $pdf->Cell(0, 5, 'HO TECHNICAL UNIVERSITY', 0, 1, 'C');
-    $pdf->SetFont('Arial', '', 10);
-    $pdf->Cell(0, 5, 'COMPUTER SCIENCE STUDENTS ASSOCIATION (COMPSSA)', 0, 1, 'C');
-    $pdf->SetFont('Arial', 'B', 12);
-    $pdf->Cell(0, 10, 'OFFICIAL RECEIPT', 0, 1, 'C');
-    
-    $pdf->Line(10, 40, 138, 40);
-    $pdf->Ln(5);
+    // Render Student Copy (Top)
+    renderReceipt($pdf, $payment, $items, 5, 'Student Copy');
 
-    // --- Section 1: Transaction Details ---
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(35, 6, 'Transaction Ref:', 0, 0);
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->Cell(45, 6, $payment['receipt_no'], 0, 0);
-    
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(30, 6, 'Date:', 0, 0);
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->Cell(0, 6, date('d-M-Y', strtotime($payment['payment_date'])), 0, 1);
+    // Dashed line in middle
+    for($i=0; $i<210; $i+=5) {
+        $pdf->Line($i, 148.5, $i+3, 148.5);
+    }
 
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(35, 6, 'Student ID:', 0, 0);
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->Cell(45, 6, $payment['index_no'], 0, 1);
-
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(35, 6, 'Student Name:', 0, 0);
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->Cell(45, 6, strtoupper($payment['first_name'] . ' ' . $payment['last_name']), 0, 1);
-
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(35, 6, 'Programme:', 0, 0);
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->MultiCell(0, 6, $payment['programme_name'], 0, 'L');
-
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(35, 6, 'Academic Year:', 0, 0);
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->Cell(45, 6, $payment['academic_year'], 0, 0);
-    
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(30, 6, 'Level:', 0, 0);
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->Cell(0, 6, $payment['programme_level'], 0, 1);
-
-    $pdf->Ln(2);
-    $pdf->Line(10, $pdf->GetY(), 138, $pdf->GetY());
-    $pdf->Ln(2);
-
-    // --- Section 2: Financials ---
-    $pdf->SetFont('Arial', 'B', 10);
-    $pdf->Cell(35, 8, 'Amount Paid:', 0, 0);
-    $pdf->SetFont('Arial', 'B', 11);
-    $pdf->Cell(45, 8, formatCurrency($payment['amount_paid']), 0, 1);
-
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(35, 6, 'Amount in Words:', 0, 0);
-    $pdf->SetFont('Arial', 'I', 9);
-    $pdf->MultiCell(0, 6, numberToWords($payment['amount_paid']), 0, 'L');
-
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(35, 6, 'Description:', 0, 0);
-    $description = "Payment for ";
-    $desc_items = [];
-    foreach ($items as $item) $desc_items[] = $item['due_name'];
-    $description .= implode(", ", $desc_items);
-    
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->MultiCell(0, 5, $description, 0, 'L');
-
-    $pdf->Ln(5);
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(35, 6, 'Served By:', 0, 0);
-    $pdf->SetFont('Arial', '', 9);
-    $pdf->Cell(0, 6, $payment['processed_by_first'] . ' ' . $payment['processed_by_last'], 0, 1);
-
-    // --- Footer ---
-    $pdf->SetY(-30);
-    $pdf->SetFont('Arial', 'I', 8);
-    $pdf->SetTextColor(100, 100, 100);
-    $pdf->Line(10, $pdf->GetY(), 138, $pdf->GetY());
-    $pdf->MultiCell(0, 4, "This receipt was issued with the mandate of Ho Technical University COMPSSA. It is a computer-generated document and does not require a physical signature unless otherwise stated.", 0, 'C');
-    $pdf->Cell(0, 4, "Verify at: http://htu.edu.gh/portal", 0, 1, 'C');
+    // Render Department Copy (Bottom)
+    renderReceipt($pdf, $payment, $items, 153.5, 'Department Copy');
 
     // Output PDF
     $pdf->Output('I', 'Receipt_' . $payment['receipt_no'] . '.pdf');

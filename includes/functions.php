@@ -75,7 +75,7 @@ function showSuccess($message) {
  * Format currency
  */
 function formatCurrency($amount) {
-    return 'GH₵ ' . number_format($amount, 2);
+    return 'GHC ' . number_format($amount, 2);
 }
 
 /**
@@ -111,14 +111,12 @@ function getCurrentAcademicYear() {
 }
 
 /**
- * Convert number to words (Basic version for Cedis)
+ * Convert number to words (Core logic)
  */
-function numberToWords($number) {
+function convertNumberToWords($number) {
     $hyphen      = '-';
     $conjunction = ' and ';
     $separator   = ', ';
-    $negative    = 'negative ';
-    $decimal     = ' point ';
     $dictionary  = array(
         0                   => 'zero',
         1                   => 'one',
@@ -154,8 +152,6 @@ function numberToWords($number) {
     );
 
     if (!is_numeric($number)) return false;
-    
-    if ($number < 0) return $negative . numberToWords(abs($number));
 
     $string = $fraction = null;
     if (strpos($number, '.') !== false) {
@@ -179,28 +175,40 @@ function numberToWords($number) {
             $remainder = $number % 100;
             $string = $dictionary[$hundreds] . ' ' . $dictionary[100];
             if ($remainder) {
-                $string .= $conjunction . numberToWords($remainder);
+                $string .= $conjunction . convertNumberToWords($remainder);
             }
             break;
         default:
             $baseUnit = pow(1000, floor(log($number, 1000)));
             $numBaseUnits = (int) ($number / $baseUnit);
             $remainder = $number % $baseUnit;
-            $string = numberToWords($numBaseUnits) . ' ' . $dictionary[$baseUnit];
+            $string = convertNumberToWords($numBaseUnits) . ' ' . $dictionary[$baseUnit];
             if ($remainder) {
                 $string .= $remainder < 100 ? $conjunction : $separator;
-                $string .= numberToWords($remainder);
+                $string .= convertNumberToWords($remainder);
             }
             break;
     }
 
     if (null !== $fraction && is_numeric($fraction) && $fraction > 0) {
-        $string .= ' and ' . numberToWords($fraction) . ' Pesewas';
-    } else {
-        $string .= ' Ghana Cedis';
+        $string .= ' and ' . convertNumberToWords($fraction) . ' Pesewas';
     }
 
-    return ucwords($string);
+    return $string;
+}
+
+/**
+ * Convert number to words for receipt (Wrapper)
+ */
+function numberToWords($number) {
+    if ($number < 0) return 'Negative ' . numberToWords(abs($number));
+    
+    $words = convertNumberToWords($number);
+    if (strpos($words, 'Pesewas') === false) {
+        $words .= ' Ghana Cedis';
+    }
+    
+    return ucwords($words);
 }
 
 /**

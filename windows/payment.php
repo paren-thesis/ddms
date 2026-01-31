@@ -301,8 +301,8 @@ try {
                                             <th>Receipt No</th>
                                             <th>Student</th>
                                             <th>Category</th>
-                                            <th>Paid (GH₵)</th>
-                                            <th>Balance (GH₵)</th>
+                                            <th>Paid (GHC)</th>
+                                            <th>Balance (GHC)</th>
                                             <th>Date</th>
                                             <th>Year</th>
                                             <th>User</th>

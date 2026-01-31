@@ -1,128 +1,141 @@
--- HTU COMPSSA CODEFEST 2025 - Database Setup
+-- HTU COMPSSA CODEFEST 2025 - Enhanced Database Setup
 -- Departmental Dues Management System
 
--- Create database
 CREATE DATABASE IF NOT EXISTS ddms_database;
 USE ddms_database;
 
--- Drop tables if they exist (for clean setup)
+-- Drop existing tables in correct order
+DROP TABLE IF EXISTS payment_items;
 DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS dues;
 DROP TABLE IF EXISTS students;
+DROP TABLE IF EXISTS academic_sessions;
+DROP TABLE IF EXISTS programmes;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS programmes;
+DROP TABLE IF EXISTS audit_logs;
 
--- Create roles table
+-- 1. ROLES TABLE
 CREATE TABLE roles (
     role_id INT PRIMARY KEY AUTO_INCREMENT,
     role_name VARCHAR(50) NOT NULL UNIQUE,
+    role_level INT NOT NULL DEFAULT 1,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create programmes table
+-- 2. PROGRAMMES TABLE
 CREATE TABLE programmes (
     programme_id INT PRIMARY KEY AUTO_INCREMENT,
-    programme_name VARCHAR(100) NOT NULL UNIQUE,
-    programme_code VARCHAR(20),
+    programme_code VARCHAR(20) NOT NULL UNIQUE,
+    programme_name VARCHAR(100) NOT NULL,
+    status ENUM('Active', 'Inactive') DEFAULT 'Active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create users table (for authentication)
+-- 3. USERS TABLE
 CREATE TABLE users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
+    phone VARCHAR(20),
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
     role_id INT NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
     last_login TIMESTAMP NULL,
+    login_attempts INT DEFAULT 0,
+    is_locked BOOLEAN DEFAULT FALSE,
+    must_change_password BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
     FOREIGN KEY (role_id) REFERENCES roles(role_id)
 );
 
--- Create students table
+-- 4. STUDENTS TABLE
 CREATE TABLE students (
     student_id INT PRIMARY KEY AUTO_INCREMENT,
     index_no VARCHAR(20) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
-    surname VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(20),
-    academic_year VARCHAR(20) NOT NULL,
     programme_id INT NOT NULL,
-    position VARCHAR(50) DEFAULT 'student',
-    start_date DATE,
+    programme_level INT NOT NULL DEFAULT 100,
+    session_type ENUM('Regular', 'Weekend', 'Evening') DEFAULT 'Regular',
+    current_academic_year VARCHAR(20),
+    status ENUM('Active', 'Inactive', 'Graduated') DEFAULT 'Active',
     user_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
     FOREIGN KEY (programme_id) REFERENCES programmes(programme_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
--- Create payments table
+-- 5. DUES TABLE
+CREATE TABLE dues (
+    due_id INT PRIMARY KEY AUTO_INCREMENT,
+    due_name VARCHAR(100) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    academic_year VARCHAR(20),
+    status ENUM('Active', 'Inactive') DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. PAYMENTS TABLE
 CREATE TABLE payments (
     payment_id INT PRIMARY KEY AUTO_INCREMENT,
-    student_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
     receipt_no VARCHAR(50) NOT NULL UNIQUE,
-    payment_date DATE NOT NULL,
+    student_id INT NOT NULL,
     academic_year VARCHAR(20) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    amount_paid DECIMAL(10,2) NOT NULL,
+    balance DECIMAL(10,2) DEFAULT 0.00,
+    payment_date DATE NOT NULL,
     created_by INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES students(student_id),
     FOREIGN KEY (created_by) REFERENCES users(user_id)
 );
 
--- Insert default roles
-INSERT INTO roles (role_name, description) VALUES
-('administrator', 'Full system access and control'),
-('supervisor', 'Can view reports and manage students'),
-('lecturer', 'Can process payments and view student data'),
-('student', 'Can view own data and payment history');
+-- 7. PAYMENT ITEMS TABLE
+CREATE TABLE payment_items (
+    payment_item_id INT PRIMARY KEY AUTO_INCREMENT,
+    payment_id INT NOT NULL,
+    due_id INT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    academic_year VARCHAR(20),
+    description VARCHAR(255),
+    FOREIGN KEY (payment_id) REFERENCES payments(payment_id) ON DELETE CASCADE,
+    FOREIGN KEY (due_id) REFERENCES dues(due_id)
+);
 
--- Insert programmes from the CSV data
-INSERT INTO programmes (programme_name, programme_code) VALUES
-('BTech Information Communication Technology', 'BTech ICT'),
-('BTech Computer Science', 'BTech CS'),
-('HND Information Communication Technology', 'HND ICT'),
-('HND Computer Science', 'HND CS');
+-- Insert Default Data
+INSERT INTO roles (role_name, role_level, description) VALUES
+('administrator', 5, 'Full system access'),
+('supervisor', 4, 'Department supervisor'),
+('lecturer', 2, 'Department lecturer'),
+('student', 1, 'Student access');
 
--- Create indexes for better performance
-CREATE INDEX idx_students_index_no ON students(index_no);
-CREATE INDEX idx_students_email ON students(email);
-CREATE INDEX idx_payments_student_id ON payments(student_id);
-CREATE INDEX idx_payments_receipt_no ON payments(receipt_no);
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_email ON users(email);
+INSERT INTO programmes (programme_code, programme_name) VALUES
+('BTECH-ICT', 'BTech Information Communication Technology'),
+('BTECH-CS', 'BTech Computer Science'),
+('HND-ICT', 'HND Information Communication Technology'),
+('HND-CS', 'HND Computer Science');
 
--- Create a view for student payment summary
-CREATE VIEW student_payment_summary AS
-SELECT 
-    s.student_id,
-    s.index_no,
-    s.first_name,
-    s.surname,
-    s.email,
-    s.academic_year,
-    p.programme_name,
-    s.position,
-    COALESCE(SUM(pay.amount), 0) as total_paid,
-    COUNT(pay.payment_id) as payment_count,
-    GROUP_CONCAT(pay.receipt_no SEPARATOR ', ') as receipt_nos,
-    s.created_at
-FROM students s
-LEFT JOIN programmes p ON s.programme_id = p.programme_id
-LEFT JOIN payments pay ON s.student_id = pay.student_id
-GROUP BY s.student_id, s.index_no, s.first_name, s.surname, s.email, s.academic_year, p.programme_name, s.position, s.created_at;
+INSERT INTO dues (due_name, amount, academic_year) VALUES
+('Departmental Dues', 150.00, '2024-2025'),
+('Laboratory Fee', 50.00, '2024-2025');
 
--- Create default administrator user (password: admin123)
--- Note: This hash will be updated by the fix_admin_password.php script
-INSERT INTO users (username, password_hash, email, role_id) VALUES
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@htu.edu.gh', 1);
+-- Default Admin (Password: admin123)
+-- Hash corresponds to 'admin123'
+INSERT INTO users (username, password_hash, email, first_name, last_name, role_id, must_change_password) VALUES
+('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@htu.edu.gh', 'System', 'Administrator', 1, FALSE);
 
--- Grant permissions (if using MySQL 8.0+)
--- CREATE USER 'htu_codefest_user'@'localhost' IDENTIFIED BY 'secure_password_123';
--- GRANT SELECT, INSERT, UPDATE, DELETE ON htu_codefest_25.* TO 'htu_codefest_user'@'localhost';
--- FLUSH PRIVILEGES; 
+-- Indexes
+CREATE INDEX idx_student_index ON students(index_no);
+CREATE INDEX idx_payment_receipt ON payments(receipt_no);
+CREATE INDEX idx_user_username ON users(username);

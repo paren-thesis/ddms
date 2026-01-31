@@ -132,14 +132,17 @@ CREATE TABLE payment_items (
 
 -- 9. AUDIT LOGS TABLE
 CREATE TABLE audit_logs (
-    audit_id INT PRIMARY KEY AUTO_INCREMENT,
-    table_name VARCHAR(50) NOT NULL,
-    record_id INT NOT NULL,
-    action VARCHAR(20) NOT NULL,
-    details TEXT,
-    changed_by INT NULL,
+    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NULL,
+    action VARCHAR(50) NOT NULL,
+    table_name VARCHAR(50) NULL,
+    record_id INT NULL,
+    old_values TEXT NULL,
+    new_values TEXT NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (changed_by) REFERENCES users(user_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 -- 10. CONFIGURATION TABLE

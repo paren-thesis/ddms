@@ -57,6 +57,8 @@ function handleLogin() {
                 $_SESSION['user_role'] = $user['role_name'];
                 $_SESSION['email'] = $user['email'];
                 
+                logActivity('LOGIN_SUCCESS', 'users', $user['user_id']);
+                
                 if ($user['must_change_password']) {
                     $_SESSION['must_change_password'] = true;
                     redirect('change_password.php');
@@ -77,8 +79,10 @@ function handleLogin() {
                 if ($attempts >= 5) {
                     $stmt = $pdo->prepare("UPDATE users SET is_locked = 1 WHERE user_id = ?");
                     $stmt->execute([$user['user_id']]);
+                    logActivity('ACCOUNT_LOCKED', 'users', $user['user_id'], null, ['username' => $username, 'reason' => 'Too many failed attempts']);
                     $error_message = 'Invalid password. Account has been locked after 5 failed attempts.';
                 } else {
+                    logActivity('LOGIN_FAILED', 'users', $user['user_id'], null, ['username' => $username]);
                     $error_message = 'Invalid username or password.';
                 }
             }

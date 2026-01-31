@@ -254,6 +254,7 @@ function handleCSVImport() {
             if (!empty($errors)) {
                 $success_message .= " Some errors occurred: " . implode(', ', array_slice($errors, 0, 5));
             }
+            logActivity('CSV_IMPORT', 'students', null, null, ['count' => $imported_count, 'filename' => $filename]);
         } else {
             $error_message = "No new students were imported. " . implode(', ', array_slice($errors, 0, 5));
         }
@@ -297,6 +298,9 @@ function handleAddStudent() {
         $stmt = $pdo->prepare("INSERT INTO students (index_no, first_name, last_name, email, phone, programme_id, programme_level, session_type, current_academic_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$index_no, $first_name, $last_name, $email, $phone, $programme_id, $prog_level, $session_type, $academic_year]);
         
+        $new_student_id = $pdo->lastInsertId();
+        logActivity('ADD_STUDENT', 'students', $new_student_id, null, ['index_no' => $index_no, 'name' => "$first_name $last_name"]);
+        
         $success_message = 'Student added successfully!';
         
     } catch (PDOException $e) {
@@ -338,6 +342,8 @@ function handleEditStudent() {
         $stmt = $pdo->prepare("UPDATE students SET index_no = ?, first_name = ?, last_name = ?, email = ?, phone = ?, programme_id = ?, programme_level = ?, session_type = ?, current_academic_year = ? WHERE student_id = ?");
         $stmt->execute([$index_no, $first_name, $last_name, $email, $phone, $programme_id, $prog_level, $session_type, $academic_year, $student_id]);
         
+        logActivity('EDIT_STUDENT', 'students', $student_id, null, ['index_no' => $index_no]);
+        
         $success_message = 'Student updated successfully!';
         
     } catch (PDOException $e) {
@@ -364,6 +370,8 @@ function handleDeleteStudent() {
         // Soft delete student
         $stmt = $pdo->prepare("UPDATE students SET deleted_at = CURRENT_TIMESTAMP WHERE student_id = ?");
         $stmt->execute([$student_id]);
+        
+        logActivity('DELETE_STUDENT', 'students', $student_id);
         
         $success_message = 'Student record archived successfully!';
         

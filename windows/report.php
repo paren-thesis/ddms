@@ -50,6 +50,24 @@ function exportCSV() {
 // Fetch payment summary
 try {
     $pdo = getDBConnection();
+    
+    // 1. Student Enrollment by Programme
+    $stmt = $pdo->query("SELECT p.programme_code, COUNT(s.student_id) as count 
+                         FROM programmes p 
+                         LEFT JOIN students s ON p.programme_id = s.programme_id AND s.deleted_at IS NULL 
+                         GROUP BY p.programme_id, p.programme_code 
+                         ORDER BY count DESC");
+    $programme_stats = $stmt->fetchAll();
+    
+    // 2. Student Distribution by Level
+    $stmt = $pdo->query("SELECT programme_level as level, COUNT(*) as count 
+                         FROM students 
+                         WHERE deleted_at IS NULL 
+                         GROUP BY level 
+                         ORDER BY level ASC");
+    $level_stats = $stmt->fetchAll();
+    
+    // Original payment summary fetch
     $sql = "SELECT s.index_no, s.first_name, s.last_name, s.email, s.current_academic_year, p.programme_name, s.programme_level, COALESCE(SUM(pay.amount_paid), 0) as total_paid, COUNT(pay.payment_id) as payment_count, GROUP_CONCAT(pay.receipt_no SEPARATOR ', ') as receipt_nos, s.created_at 
             FROM students s 
             LEFT JOIN programmes p ON s.programme_id = p.programme_id 
@@ -74,6 +92,8 @@ try {
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Header with Logo and Title -->
@@ -108,6 +128,30 @@ try {
                     <?php if ($error_message): ?>
                         <div class="alert alert-danger"><?php echo $error_message; ?></div>
                     <?php endif; ?>
+                    
+                    <!-- Analytics Section -->
+                    <div class="row mb-5">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Programme Enrollment</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="programmeChart" style="max-height: 250px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Level Breakdown</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="levelChart" style="max-height: 250px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Export Button -->
                     <div class="mb-4 text-end">
@@ -171,5 +215,54 @@ try {
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Programme Enrollment Bar Chart
+            const progCtx = document.getElementById('programmeChart').getContext('2d');
+            new Chart(progCtx, {
+                type: 'bar',
+                data: {
+                    labels: <?php echo json_encode(array_column($programme_stats, 'programme_code')); ?>,
+                    datasets: [{
+                        label: 'Number of Students',
+                        data: <?php echo json_encode(array_column($programme_stats, 'count')); ?>,
+                        backgroundColor: '#050589',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Level Distribution Pie Chart
+            const levelCtx = document.getElementById('levelChart').getContext('2d');
+            new Chart(levelCtx, {
+                type: 'pie',
+                data: {
+                    labels: <?php echo json_encode(array_map(function($l) { return "Level " . $l['level']; }, $level_stats)); ?>,
+                    datasets: [{
+                        data: <?php echo json_encode(array_column($level_stats, 'count')); ?>,
+                        backgroundColor: [
+                            '#050589', '#FF8B00', '#F5D200', '#0a0a0a', '#cccccc'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

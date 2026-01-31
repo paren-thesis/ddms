@@ -92,6 +92,9 @@ function handleAddUser() {
         $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, first_name, last_name, phone, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$username, $email, $hashedPassword, $first_name, $last_name, $phone, $roleData['role_id']]);
         
+        $new_user_id = $pdo->lastInsertId();
+        logActivity('ADD_USER', 'users', $new_user_id, null, ['username' => $username, 'role' => $role]);
+        
         $success_message = 'User added successfully.';
     } catch (PDOException $e) {
         $error_message = 'Failed to add user: ' . $e->getMessage();
@@ -157,6 +160,8 @@ function handleEditUser() {
             $stmt->execute([$username, $email, $first_name, $last_name, $phone, $roleData['role_id'], $is_active, $is_locked, $user_id]);
         }
         
+        logActivity('EDIT_USER', 'users', $user_id, null, ['username' => $username]);
+        
         $success_message = 'User updated successfully.';
     } catch (PDOException $e) {
         $error_message = 'Failed to update user: ' . $e->getMessage();
@@ -188,6 +193,8 @@ function handleDeleteUser() {
         // Soft delete user
         $stmt = $pdo->prepare("UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = ?");
         $stmt->execute([$user_id]);
+        
+        logActivity('DELETE_USER', 'users', $user_id);
         
         $success_message = 'User deleted (archived) successfully.';
     } catch (PDOException $e) {

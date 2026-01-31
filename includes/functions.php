@@ -109,4 +109,35 @@ function getCurrentAcademicYear() {
     $currentYearResult = "$currentYear-$nextYear";
     return $currentYearResult;
 }
-?> 
+
+/**
+ * Log user activity to the audit_logs table
+ */
+function logActivity($action, $table_name = null, $record_id = null, $old_values = null, $new_values = null) {
+    try {
+        $pdo = getDBConnection();
+        $user_id = $_SESSION['user_id'] ?? null;
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        
+        $sql = "INSERT INTO audit_logs (user_id, action, table_name, record_id, old_values, new_values, ip_address, user_agent) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            $user_id,
+            $action,
+            $table_name,
+            $record_id,
+            $old_values ? json_encode($old_values) : null,
+            $new_values ? json_encode($new_values) : null,
+            $ip_address,
+            $user_agent
+        ]);
+        return true;
+    } catch (PDOException $e) {
+        error_log("Failed to log activity: " . $e->getMessage());
+        return false;
+    }
+}
+?>

@@ -95,6 +95,13 @@ function handleMakePayment() {
         $stmt->execute([$payment_id, $due_id, $amount, $academic_year, $description]);
         
         $pdo->commit();
+        
+        logActivity('MAKE_PAYMENT', 'payments', $payment_id, null, [
+            'student_id' => $student_id,
+            'amount' => $amount,
+            'receipt_no' => $receipt_no
+        ]);
+        
         $success_message = 'Payment processed successfully! Receipt No: ' . $receipt_no;
         
     } catch (Exception $e) {

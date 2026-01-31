@@ -31,7 +31,7 @@ $email = $_SESSION['email'] ?? '';
 
 // Define role-based permissions
 $role_permissions = [
-    'administrator' => ['data', 'payment', 'report', 'users'],
+    'administrator' => ['data', 'payment', 'report', 'users', 'audit_logs'],
     'supervisor' => ['data', 'payment', 'report'],
     'lecturer' => ['data', 'payment', 'report'],
     'student' => ['data']
@@ -56,9 +56,24 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) FROM payments");
     $total_payments = $stmt->fetchColumn();
     
-    // Total revenue (using amount_paid from the new schema)
+    // Total revenue
     $stmt = $pdo->query("SELECT SUM(amount_paid) FROM payments");
     $total_revenue = $stmt->fetchColumn() ?: 0;
+    
+    // Monthly Revenue Trend (Last 6 Months)
+    $stmt = $pdo->query("SELECT DATE_FORMAT(payment_date, '%b %Y') as month, SUM(amount_paid) as total 
+                         FROM payments 
+                         GROUP BY month 
+                         ORDER BY payment_date DESC 
+                         LIMIT 6");
+    $revenue_data = array_reverse($stmt->fetchAll());
+    
+    // Payment Completion Rate (Simplified: Total Paid vs Total Dues for current session)
+    // First, get total mandatory dues amount for current session
+    $stmt = $pdo->prepare("SELECT SUM(amount) FROM dues WHERE academic_year = ? AND is_mandatory = 1");
+    $stmt->execute([$academic_year]);
+    $avg_dues_per_student = $stmt->fetchColumn() ?: 0;
+    $total_expected = $avg_dues_per_student * $total_students;
     
 } catch (PDOException $e) {
     // Fail silently, stats will remain 0
@@ -75,6 +90,8 @@ try {
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Header with Logo and Title -->
@@ -121,6 +138,40 @@ try {
                                 <div class="col-md-6">
                                     <p><strong>Role:</strong> <?php echo ucfirst($user_role); ?></p>
                                     <p><strong>Login Time:</strong> <?php echo date('Y-m-d H:i:s'); ?></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Visual Analytics -->
+                    <div class="row mb-5">
+                        <div class="col-md-8">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Revenue Trend (Last 6 Months)</h5>
+                                    <span class="badge bg-primary"><?php echo $academic_year; ?></span>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="revenueChart" style="max-height: 250px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Payment Progress</h5>
+                                </div>
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                    <canvas id="completionChart" style="max-height: 200px;"></canvas>
+                                    <div class="mt-3 text-center">
+                                        <h4 class="mb-0" style="color: var(--blue);">
+                                            <?php 
+                                                $percentage = ($total_expected > 0) ? round(($total_revenue / $total_expected) * 100, 1) : 0;
+                                                echo $percentage . '%';
+                                            ?>
+                                        </h4>
+                                        <small class="text-muted">Expected: <?php echo formatCurrency($total_expected); ?></small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -205,6 +256,21 @@ try {
                             </div>
                         </div>
                         <?php endif; ?>
+                        
+                        <?php if (in_array('audit_logs', $user_permissions)): ?>
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Audit Logs</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    <i class="fas fa-shield-alt fa-3x mb-3" style="color: var(--blue);"></i>
+                                    <p>Track all system activities and user actions for security auditing.</p>
+                                    <a href="audit_logs.php" class="btn btn-primary w-100">Access Audit Logs</a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     
                     <!-- Action Buttons -->
@@ -284,6 +350,69 @@ try {
                 window.location.href = 'login.php';
             }
         }
+
+        // Initialize Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Revenue Trend Chart
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: <?php echo json_encode(array_column($revenue_data, 'month')); ?>,
+                    datasets: [{
+                        label: 'Revenue (GHS)',
+                        data: <?php echo json_encode(array_column($revenue_data, 'total')); ?>,
+                        borderColor: '#FF8B00',
+                        backgroundColor: 'rgba(255, 139, 0, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#050589',
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Payment Completion Chart
+            const completionCtx = document.getElementById('completionChart').getContext('2d');
+            const paid = <?php echo floatval($total_revenue); ?>;
+            const outstanding = Math.max(0, <?php echo floatval($total_expected - $total_revenue); ?>);
+            
+            new Chart(completionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Paid', 'Outstanding'],
+                    datasets: [{
+                        data: [paid, outstanding],
+                        backgroundColor: ['#050589', '#F5D200'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        });
     </script>
 </body>
-</html> 
+</html>

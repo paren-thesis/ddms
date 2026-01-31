@@ -30,6 +30,7 @@ CREATE TABLE programmes (
     programme_id INT PRIMARY KEY AUTO_INCREMENT,
     programme_code VARCHAR(20) NOT NULL UNIQUE,
     programme_name VARCHAR(100) NOT NULL,
+    programme_type ENUM('BTech', 'HND', 'Diploma', 'Other') DEFAULT 'BTech',
     status ENUM('Active', 'Inactive') DEFAULT 'Active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -75,6 +76,7 @@ CREATE TABLE students (
     programme_level INT NOT NULL DEFAULT 100,
     session_type ENUM('Regular', 'Weekend', 'Evening') DEFAULT 'Regular',
     current_academic_year VARCHAR(20),
+    position VARCHAR(50) DEFAULT 'student',
     status ENUM('Active', 'Inactive', 'Graduated') DEFAULT 'Active',
     user_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -88,10 +90,16 @@ CREATE TABLE students (
 CREATE TABLE dues (
     due_id INT PRIMARY KEY AUTO_INCREMENT,
     due_name VARCHAR(100) NOT NULL,
+    due_code VARCHAR(50) NOT NULL UNIQUE,
+    programme_id INT NULL,
     amount DECIMAL(10,2) NOT NULL,
     academic_year VARCHAR(20),
+    is_mandatory BOOLEAN DEFAULT TRUE,
     status ENUM('Active', 'Inactive') DEFAULT 'Active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(user_id),
+    FOREIGN KEY (programme_id) REFERENCES programmes(programme_id)
 );
 
 -- 7. PAYMENTS TABLE
@@ -159,9 +167,9 @@ INSERT INTO academic_sessions (session_name, is_current) VALUES
 ('2023-2024', FALSE),
 ('2024-2025', TRUE);
 
-INSERT INTO dues (due_name, amount, academic_year) VALUES
-('Departmental Dues', 150.00, '2024-2025'),
-('Laboratory Fee', 50.00, '2024-2025');
+INSERT INTO dues (due_name, due_code, amount, academic_year) VALUES
+('Departmental Dues', 'DEPT-2024-2025', 150.00, '2024-2025'),
+('Laboratory Fee', 'LAB-2024-2025', 50.00, '2024-2025');
 
 INSERT INTO configurations (config_key, config_value, description) VALUES
 ('system_name', 'HTU COMPSSA Dues Management System', 'Name of the application'),

@@ -83,6 +83,14 @@ function handleCSVImport() {
             $error_message = 'Unable to read the CSV file.';
             return;
         }
+
+        // 0. Verify current session user exists (in case of DB reset/wipe)
+        $session_user_id = $_SESSION['user_id'];
+        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE user_id = ? AND deleted_at IS NULL");
+        $stmt->execute([$session_user_id]);
+        if (!$stmt->fetch()) {
+            throw new Exception("Your session is stale (user ID not found). Please log out and log back in to refresh your account access.");
+        }
         
         // Skip header row
         $header = fgetcsv($handle);
@@ -129,7 +137,18 @@ function handleCSVImport() {
                 $role_stmt = $pdo->prepare("SELECT role_id FROM roles WHERE role_name = ?");
                 $role_stmt->execute([$position]);
                 $role_data = $role_stmt->fetch();
-                $role_id = $role_data ? $role_data['role_id'] : 5; // Default to student role (5 in new schema)
+                
+                if (!$role_data) {
+                    // Fallback to student role
+                    $role_stmt = $pdo->prepare("SELECT role_id FROM roles WHERE role_name = 'student'");
+                    $role_stmt->execute();
+                    $role_data = $role_stmt->fetch();
+                }
+                $role_id = $role_data ? $role_data['role_id'] : null;
+                
+                if (!$role_id) {
+                    throw new Exception("Critical error: 'student' role not found in database.");
+                }
                 
                 // Split name for user record
                 $name_parts = explode(',', $name);
@@ -196,7 +215,7 @@ function handleCSVImport() {
                         
                         // Insert Payment
                         $stmt = $pdo->prepare("INSERT INTO payments (receipt_no, student_id, academic_year, total_amount, amount_paid, balance, payment_date, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$receipt_no, $student_id, $academic_year, $dues_paid, $dues_paid, 0, $sql_date, $_SESSION['user_id']]);
+                        $stmt->execute([$receipt_no, $student_id, $academic_year, $dues_paid, $dues_paid, 0, $sql_date, $session_user_id]);
                         $payment_id = $pdo->lastInsertId();
                         
                         // Create a default due if it doesn't exist for this year/programme
@@ -208,9 +227,9 @@ function handleCSVImport() {
                             $due_id = $due_data['due_id'];
                         } else {
                             // Create generic due
-                            $due_code = "DEPT-" . $academic_year;
+                            $due_code = "DEPT-" . $academic_year . "-" . $student_id;
                             $stmt = $pdo->prepare("INSERT INTO dues (due_name, due_code, amount, academic_year, created_by) VALUES (?, ?, ?, ?, ?)");
-                            $stmt->execute(["Departmental Dues $academic_year", $due_code, $dues_paid, $academic_year, $_SESSION['user_id']]);
+                            $stmt->execute(["Departmental Dues $academic_year", $due_code, $dues_paid, $academic_year, $session_user_id]);
                             $due_id = $pdo->lastInsertId();
                         }
                         

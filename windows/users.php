@@ -367,21 +367,21 @@ try {
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-outline-primary" onclick="editUser(
-                                                            <?php echo $user['user_id']; ?>, 
-                                                            '<?php echo addslashes($user['username']); ?>', 
-                                                            '<?php echo addslashes($user['email']); ?>', 
-                                                            '<?php echo addslashes($user['role_name']); ?>',
-                                                            '<?php echo addslashes($user['first_name']); ?>',
-                                                            '<?php echo addslashes($user['last_name']); ?>',
-                                                            '<?php echo addslashes($user['phone']); ?>',
-                                                            <?php echo $user['is_active']; ?>,
-                                                            <?php echo $user['is_locked']; ?>
-                                                        )">
+                                                        <button class="btn btn-sm btn-outline-primary" onclick='editUser(
+                                                            <?php echo (int)$user["user_id"]; ?>, 
+                                                            <?php echo htmlspecialchars(json_encode($user["username"] ?? "")); ?>, 
+                                                            <?php echo htmlspecialchars(json_encode($user["email"] ?? "")); ?>, 
+                                                            <?php echo htmlspecialchars(json_encode($user["role_name"] ?? "")); ?>,
+                                                            <?php echo htmlspecialchars(json_encode($user["first_name"] ?? "")); ?>,
+                                                            <?php echo htmlspecialchars(json_encode($user["last_name"] ?? "")); ?>,
+                                                            <?php echo htmlspecialchars(json_encode($user["phone"] ?? "")); ?>,
+                                                            <?php echo (int)($user["is_active"] ?? 1); ?>,
+                                                            <?php echo (int)($user["is_locked"] ?? 0); ?>
+                                                        )'>
                                                             <i class="fas fa-edit"></i>
                                                         </button>
                                                         <?php if ($user['user_id'] != $_SESSION['user_id']): ?>
-                                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(<?php echo $user['user_id']; ?>, '<?php echo $user['username']; ?>')">
+                                                            <button class="btn btn-sm btn-outline-danger" onclick='deleteUser(<?php echo (int)$user["user_id"]; ?>, <?php echo htmlspecialchars(json_encode($user["username"] ?? "")); ?>)'>
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
                                                         <?php endif; ?>

@@ -102,7 +102,8 @@ function handleMakePayment() {
             'receipt_no' => $receipt_no
         ]);
         
-        $success_message = 'Payment processed successfully! Receipt No: ' . $receipt_no;
+        $success_message = 'Payment processed successfully! Receipt No: ' . $receipt_no . 
+                           ' <a href="generate_receipt.php?id='.$payment_id.'" target="_blank" class="btn btn-sm btn-success ms-3"><i class="fas fa-print me-1"></i>Print Receipt</a>';
         
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -297,7 +298,6 @@ try {
                                 <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
-                                        <tr>
                                             <th>Receipt No</th>
                                             <th>Student</th>
                                             <th>Category</th>
@@ -306,6 +306,7 @@ try {
                                             <th>Date</th>
                                             <th>Year</th>
                                             <th>User</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -326,6 +327,12 @@ try {
                                                     <td><?php echo date('d M, Y', strtotime($payment['payment_date'])); ?></td>
                                                     <td><?php echo sanitizeInput($payment['academic_year']); ?></td>
                                                     <td><?php echo sanitizeInput($payment['lecturer']); ?></td>
+                                                    <td>
+                                                        <a href="generate_receipt.php?id=<?php echo $payment['payment_id']; ?>" 
+                                                           target="_blank" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-print"></i>
+                                                        </a>
+                                                    </td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         <?php endif; ?>

@@ -129,33 +129,33 @@ try {
                                             <th>Index No</th>
                                             <th>Name</th>
                                             <th>Email</th>
-                                            <th>Academic Year</th>
+                                            <th>Year</th>
                                             <th>Programme</th>
-                                            <th>Position</th>
+                                            <th>Level</th>
                                             <th>Total Paid</th>
-                                            <th>Payment Count</th>
-                                            <th>Receipt No</th>
-                                            <th>Created At</th>
+                                            <th>Count</th>
+                                            <th>Receipts</th>
+                                            <th>Date</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (empty($summary)): ?>
                                             <tr>
-                                                <td colspan="9" class="text-center">No data found.</td>
+                                                <td colspan="10" class="text-center">No data found.</td>
                                             </tr>
                                         <?php else: ?>
                                             <?php foreach ($summary as $row): ?>
                                                 <tr>
                                                     <td><?php echo sanitizeInput($row['index_no']); ?></td>
-                                                    <td><?php echo sanitizeInput($row['first_name'] . ' ' . $row['surname']); ?></td>
+                                                    <td><?php echo sanitizeInput($row['first_name'] . ' ' . $row['last_name']); ?></td>
                                                     <td><?php echo sanitizeInput($row['email']); ?></td>
-                                                    <td><?php echo sanitizeInput($row['academic_year']); ?></td>
+                                                    <td><?php echo sanitizeInput($row['current_academic_year']); ?></td>
                                                     <td><?php echo sanitizeInput($row['programme_name']); ?></td>
-                                                    <td><?php echo sanitizeInput($row['position']); ?></td>
+                                                    <td><?php echo sanitizeInput($row['programme_level']); ?></td>
                                                     <td><?php echo formatCurrency($row['total_paid']); ?></td>
                                                     <td><?php echo sanitizeInput($row['payment_count']); ?></td>
                                                     <td><small><?php echo sanitizeInput($row['receipt_nos'] ?: 'N/A'); ?></small></td>
-                                                    <td><?php echo sanitizeInput($row['created_at']); ?></td>
+                                                    <td><?php echo date('d/m/Y', strtotime($row['created_at'])); ?></td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         <?php endif; ?>

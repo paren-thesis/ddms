@@ -89,8 +89,24 @@ function isValidEmail($email) {
  * Get current academic year
  */
 function getCurrentAcademicYear() {
+    static $currentYearResult = null;
+    if ($currentYearResult !== null) return $currentYearResult;
+
+    try {
+        $pdo = getDBConnection();
+        $stmt = $pdo->query("SELECT session_name FROM academic_sessions WHERE is_current = 1 LIMIT 1");
+        $session = $stmt->fetch();
+        if ($session) {
+            $currentYearResult = $session['session_name'];
+            return $currentYearResult;
+        }
+    } catch (Exception $e) {
+        // Fallback below
+    }
+
     $currentYear = date('Y');
     $nextYear = $currentYear + 1;
-    return "$currentYear-$nextYear";
+    $currentYearResult = "$currentYear-$nextYear";
+    return $currentYearResult;
 }
 ?> 

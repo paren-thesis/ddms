@@ -26,49 +26,39 @@ This is a web-based departmental dues management system developed for HTU COMPSS
 ### Tables Structure
 
 1. **roles** - User role definitions
-   - role_id (Primary Key)
-   - role_name (administrator, supervisor, cashier, lecturer, student)
-   - description
-   - created_at
+   - role_id, role_name, role_level, description, created_at
 
 2. **programmes** - Academic programmes
-   - programme_id (Primary Key)
-   - programme_name
-   - programme_code
-   - created_at
+   - programme_id, programme_code, programme_name, status, created_at
 
-3. **users** - Authentication and user management
-   - user_id (Primary Key)
-   - username (Unique)
-   - password_hash (Encrypted)
-   - email (Unique)
-   - role_id (Foreign Key to roles)
-   - is_active
-   - last_login
-   - created_at, updated_at
+3. **academic_sessions** - Academic year sessions
+   - session_id, session_name, is_current, created_at
 
-4. **students** - Student information
-   - student_id (Primary Key)
-   - index_no (Unique)
-   - first_name, surname
-   - email (Unique)
-   - phone
-   - academic_year
-   - programme_id (Foreign Key to programmes)
-   - position
-   - start_date
-   - user_id (Foreign Key to users, nullable)
-   - created_at, updated_at
+4. **users** - Authentication and user management
+   - user_id, username, password_hash, email, phone, first_name, last_name, role_id
+   - login_attempts, is_locked, must_change_password, is_active
+   - last_login, created_at, updated_at, deleted_at
 
-5. **payments** - Payment records
-   - payment_id (Primary Key)
-   - student_id (Foreign Key to students)
-   - amount
-   - receipt_no (Unique)
-   - payment_date
-   - academic_year
-   - created_by (Foreign Key to users)
-   - created_at
+5. **students** - student information
+   - student_id, index_no, first_name, last_name, email, phone
+   - programme_id, programme_level, session_type, current_academic_year, status
+   - user_id, created_at, updated_at, deleted_at
+
+6. **dues** - Configurable dues amounts
+   - due_id, due_name, amount, academic_year, status, created_at
+
+7. **payments** - Parent payment records
+   - payment_id, receipt_no, student_id, academic_year, total_amount, amount_paid, balance
+   - payment_date, created_by, created_at
+
+8. **payment_items** - Line items for each payment
+   - payment_item_id, payment_id, due_id, amount, academic_year, description
+
+9. **audit_logs** - System change tracking
+   - audit_id, table_name, record_id, action, details, changed_by, created_at
+
+10. **configurations** - System settings
+    - config_id, config_key, config_value, description
 
 ### Views
 

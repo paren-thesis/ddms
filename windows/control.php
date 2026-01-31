@@ -99,7 +99,7 @@ try {
         <div class="container-fluid">
             <div class="row align-items-center">
                 <div class="col-md-2">
-                    <img src="../assets/Logo_Worldskills_Ghana.png" alt="HTU Logo" class="logo">
+                    <img src="../assets/compssa_logo.png" alt="COMPSSA Logo" class="logo">
                 </div>
                 <div class="col-md-8 text-center">
                     <h1 class="app-title"><?php echo APP_NAME; ?></h1>
@@ -138,6 +138,49 @@ try {
                                 <div class="col-md-6">
                                     <p><strong>Role:</strong> <?php echo ucfirst($user_role); ?></p>
                                     <p><strong>Login Time:</strong> <?php echo date('Y-m-d H:i:s'); ?></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Quick Statistics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3 text-center">
+                                            <div class="stat-item">
+                                                <i class="fas fa-users fa-2x mb-2" style="color: var(--blue);"></i>
+                                                <h4><?php echo number_format($total_students); ?></h4>
+                                                <p>Total Students</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <div class="stat-item">
+                                                <i class="fas fa-credit-card fa-2x mb-2" style="color: var(--orange-brown);"></i>
+                                                <h4><?php echo number_format($total_payments); ?></h4>
+                                                <p>Total Payments</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <div class="stat-item">
+                                                <i class="fas fa-money-bill-wave fa-2x mb-2" style="color: var(--yellow);"></i>
+                                                <h4><?php echo formatCurrency($total_revenue); ?></h4>
+                                                <p>Total Revenue</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <div class="stat-item">
+                                                <i class="fas fa-calendar fa-2x mb-2" style="color: var(--blue);"></i>
+                                                <h4><?php echo sanitizeInput($academic_year); ?></h4>
+                                                <p>Academic Year</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -307,48 +350,7 @@ try {
                         </div>
                     </div>
                     
-                    <!-- Quick Stats -->
-                    <div class="row mt-5">
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Quick Statistics</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-3 text-center">
-                                            <div class="stat-item">
-                                                <i class="fas fa-users fa-2x mb-2" style="color: var(--blue);"></i>
-                                                <h4><?php echo number_format($total_students); ?></h4>
-                                                <p>Total Students</p>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 text-center">
-                                            <div class="stat-item">
-                                                <i class="fas fa-credit-card fa-2x mb-2" style="color: var(--orange-brown);"></i>
-                                                <h4><?php echo number_format($total_payments); ?></h4>
-                                                <p>Total Payments</p>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 text-center">
-                                            <div class="stat-item">
-                                                <i class="fas fa-money-bill-wave fa-2x mb-2" style="color: var(--yellow);"></i>
-                                                <h4><?php echo formatCurrency($total_revenue); ?></h4>
-                                                <p>Total Revenue</p>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 text-center">
-                                            <div class="stat-item">
-                                                <i class="fas fa-calendar fa-2x mb-2" style="color: var(--blue);"></i>
-                                                <h4><?php echo sanitizeInput($academic_year); ?></h4>
-                                                <p>Academic Year</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Visual Analytics -->
                 </div>
             </div>
         </div>

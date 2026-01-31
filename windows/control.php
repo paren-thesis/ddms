@@ -31,7 +31,7 @@ $email = $_SESSION['email'] ?? '';
 
 // Define role-based permissions
 $role_permissions = [
-    'administrator' => ['data', 'payment', 'report', 'users', 'audit_logs'],
+    'administrator' => ['data', 'payment', 'report', 'users', 'audit_logs', 'settings'],
     'supervisor' => ['data', 'payment', 'report'],
     'lecturer' => ['data', 'payment', 'report'],
     'student' => ['data']
@@ -267,6 +267,21 @@ try {
                                     <i class="fas fa-shield-alt fa-3x mb-3" style="color: var(--blue);"></i>
                                     <p>Track all system activities and user actions for security auditing.</p>
                                     <a href="audit_logs.php" class="btn btn-primary w-100">Access Audit Logs</a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (in_array('settings', $user_permissions)): ?>
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Dues & Sessions</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calendar-check fa-3x mb-3" style="color: var(--orange-brown);"></i>
+                                    <p>Manage academic years and define dues categories for the department.</p>
+                                    <a href="settings.php" class="btn btn-primary w-100">Access Settings</a>
                                 </div>
                             </div>
                         </div>

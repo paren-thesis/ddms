@@ -1,10 +1,12 @@
--- HTU COMPSSA CODEFEST 2025 - Enhanced Database Setup
--- Departmental Dues Management System
+-- HTU COMPSSA CODEFEST 2025 - Complete Database Setup
+-- Departmental Dues Management System (Overhaul Version)
 
 CREATE DATABASE IF NOT EXISTS ddms_database;
 USE ddms_database;
 
 -- Drop existing tables in correct order
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS configurations;
 DROP TABLE IF EXISTS payment_items;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS dues;
@@ -13,7 +15,6 @@ DROP TABLE IF EXISTS academic_sessions;
 DROP TABLE IF EXISTS programmes;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS audit_logs;
 
 -- 1. ROLES TABLE
 CREATE TABLE roles (
@@ -33,7 +34,15 @@ CREATE TABLE programmes (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. USERS TABLE
+-- 3. ACADEMIC SESSIONS TABLE
+CREATE TABLE academic_sessions (
+    session_id INT PRIMARY KEY AUTO_INCREMENT,
+    session_name VARCHAR(20) NOT NULL UNIQUE,
+    is_current BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. USERS TABLE
 CREATE TABLE users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -54,7 +63,7 @@ CREATE TABLE users (
     FOREIGN KEY (role_id) REFERENCES roles(role_id)
 );
 
--- 4. STUDENTS TABLE
+-- 5. STUDENTS TABLE
 CREATE TABLE students (
     student_id INT PRIMARY KEY AUTO_INCREMENT,
     index_no VARCHAR(20) NOT NULL UNIQUE,
@@ -75,7 +84,7 @@ CREATE TABLE students (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
--- 5. DUES TABLE
+-- 6. DUES TABLE
 CREATE TABLE dues (
     due_id INT PRIMARY KEY AUTO_INCREMENT,
     due_name VARCHAR(100) NOT NULL,
@@ -85,7 +94,7 @@ CREATE TABLE dues (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. PAYMENTS TABLE
+-- 7. PAYMENTS TABLE
 CREATE TABLE payments (
     payment_id INT PRIMARY KEY AUTO_INCREMENT,
     receipt_no VARCHAR(50) NOT NULL UNIQUE,
@@ -101,7 +110,7 @@ CREATE TABLE payments (
     FOREIGN KEY (created_by) REFERENCES users(user_id)
 );
 
--- 7. PAYMENT ITEMS TABLE
+-- 8. PAYMENT ITEMS TABLE
 CREATE TABLE payment_items (
     payment_item_id INT PRIMARY KEY AUTO_INCREMENT,
     payment_id INT NOT NULL,
@@ -111,6 +120,26 @@ CREATE TABLE payment_items (
     description VARCHAR(255),
     FOREIGN KEY (payment_id) REFERENCES payments(payment_id) ON DELETE CASCADE,
     FOREIGN KEY (due_id) REFERENCES dues(due_id)
+);
+
+-- 9. AUDIT LOGS TABLE
+CREATE TABLE audit_logs (
+    audit_id INT PRIMARY KEY AUTO_INCREMENT,
+    table_name VARCHAR(50) NOT NULL,
+    record_id INT NOT NULL,
+    action VARCHAR(20) NOT NULL,
+    details TEXT,
+    changed_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (changed_by) REFERENCES users(user_id)
+);
+
+-- 10. CONFIGURATION TABLE
+CREATE TABLE configurations (
+    config_id INT PRIMARY KEY AUTO_INCREMENT,
+    config_key VARCHAR(100) NOT NULL UNIQUE,
+    config_value TEXT,
+    description TEXT
 );
 
 -- Insert Default Data
@@ -126,12 +155,19 @@ INSERT INTO programmes (programme_code, programme_name) VALUES
 ('HND-ICT', 'HND Information Communication Technology'),
 ('HND-CS', 'HND Computer Science');
 
+INSERT INTO academic_sessions (session_name, is_current) VALUES
+('2023-2024', FALSE),
+('2024-2025', TRUE);
+
 INSERT INTO dues (due_name, amount, academic_year) VALUES
 ('Departmental Dues', 150.00, '2024-2025'),
 ('Laboratory Fee', 50.00, '2024-2025');
 
+INSERT INTO configurations (config_key, config_value, description) VALUES
+('system_name', 'HTU COMPSSA Dues Management System', 'Name of the application'),
+('receipt_prefix', 'CSD', 'Prefix for receipt numbers');
+
 -- Default Admin (Password: admin123)
--- Hash corresponds to 'admin123'
 INSERT INTO users (username, password_hash, email, first_name, last_name, role_id, must_change_password) VALUES
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@htu.edu.gh', 'System', 'Administrator', 1, FALSE);
 

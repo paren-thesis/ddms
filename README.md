@@ -70,7 +70,7 @@ The system uses a normalized relational database schema designed for integrity a
 ## Default Login Credentials
 
 - **Username**: `admin`
-- **Password**: `admin123`
+- **Password**: `password` (was `admin123`)
 - **Role**: Administrator
 
 ## Project Structure

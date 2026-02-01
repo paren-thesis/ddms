@@ -15,7 +15,7 @@ require_once '../config/config.php';
 require_once '../includes/functions.php';
 
 // Check if user is logged in and has permission
-if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['administrator', 'supervisor', 'lecturer', 'student'])) {
+if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'cashier', 'supervisor', 'student'])) {
     redirect('login.php');
 }
 
@@ -30,8 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Debug: Log the action and user role
     error_log("Form submission - Action: $action, User Role: " . ($_SESSION['user_role'] ?? 'none'));
     
-    // Only allow non-student roles to perform data management actions
-    if (!in_array($_SESSION['user_role'], ['student'])) {
+    // Role-based action handling
+    if ($action === 'update_profile' && $_SESSION['user_role'] === 'student') {
+        handleUpdateProfile();
+    } elseif (in_array($_SESSION['user_role'], ['admin', 'hod'])) {
         switch ($action) {
             case 'import_csv':
                 handleCSVImport();
@@ -380,6 +382,44 @@ function handleDeleteStudent() {
     }
 }
 
+function handleUpdateProfile() {
+    global $error_message, $success_message;
+    
+    $student_id = sanitizeInput($_POST['student_id'] ?? '');
+    $phone = sanitizeInput($_POST['phone'] ?? '');
+    $user_id = $_SESSION['user_id'];
+    
+    if (empty($student_id) || empty($phone)) {
+        $error_message = 'Phone number cannot be empty.';
+        return;
+    }
+    
+    try {
+        $pdo = getDBConnection();
+        
+        // Verify this student belongs to the logged in user
+        $stmt = $pdo->prepare("SELECT student_id, phone FROM students WHERE student_id = ? AND user_id = ?");
+        $stmt->execute([$student_id, $user_id]);
+        $old_data = $stmt->fetch();
+        
+        if (!$old_data) {
+            $error_message = 'Unauthorized profile update attempt.';
+            return;
+        }
+        
+        // Update phone
+        $stmt = $pdo->prepare("UPDATE students SET phone = ? WHERE student_id = ? AND user_id = ?");
+        $stmt->execute([$phone, $student_id, $user_id]);
+        
+        logActivity('PROFILE_UPDATE', 'students', $student_id, ['phone' => $old_data['phone']], ['phone' => $phone]);
+        
+        $success_message = 'Contact information updated successfully!';
+        
+    } catch (PDOException $e) {
+        $error_message = 'Failed to update profile: ' . $e->getMessage();
+    }
+}
+
 // Get search parameters
 $search = sanitizeInput($_GET['search'] ?? '');
 $programme_filter = sanitizeInput($_GET['programme'] ?? '');
@@ -391,6 +431,12 @@ try {
     
     $where_conditions = ["s.deleted_at IS NULL"]; // Exclude soft-deleted records
     $params = [];
+    
+    // If user is a student, only show their own record
+    if ($_SESSION['user_role'] === 'student') {
+        $where_conditions[] = "s.user_id = ?";
+        $params[] = $_SESSION['user_id'];
+    }
     
     if (!empty($search)) {
         $where_conditions[] = "(s.index_no LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ? OR s.email LIKE ?)";
@@ -459,7 +505,7 @@ try {
         <div class="container-fluid">
             <div class="row align-items-center">
                 <div class="col-md-2">
-                    <img src="../assets/Logo_Worldskills_Ghana.png" alt="HTU Logo" class="logo">
+                    <img src="../assets/compssa_logo.png" alt="COMPSSA Logo" class="logo">
                 </div>
                 <div class="col-md-8 text-center">
                     <h1 class="app-title"><?php echo APP_NAME; ?></h1>
@@ -491,8 +537,8 @@ try {
                         <div class="alert alert-success"><?php echo $success_message; ?></div>
                     <?php endif; ?>
                     
-                    <!-- Import CSV Section - Only for Administrators, Supervisors, and Lecturers -->
-                    <?php if (!in_array($_SESSION['user_role'], ['student'])): ?>
+                    <!-- Import CSV Section - Only for Admin, HOD, and Supervisor -->
+                    <?php if (in_array($_SESSION['user_role'], ['admin', 'hod', 'supervisor'])): ?>
                     <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Import CSV Data</h5>
@@ -520,17 +566,34 @@ try {
                         </div>
                     </div>
                     <?php else: ?>
-                    <!-- Student View Only Message -->
+                    <!-- Student View & Profile Profile -->
                     <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Student Data (View Only)</h5>
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i>My Profile Information</h5>
                         </div>
                         <div class="card-body">
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                <strong>Student Access:</strong> You can view student data but cannot import, add, edit, or delete records. 
-                                Only administrators, supervisors, and lecturers can manage student data.
+                                <strong>Personal View:</strong> You are viewing your official student record. Only you and department officials can see this data.
                             </div>
+                            
+                            <!-- Phone Number Update Form -->
+                            <form method="POST" class="mt-3">
+                                <input type="hidden" name="action" value="update_profile">
+                                <input type="hidden" name="student_id" value="<?php echo $students[0]['student_id'] ?? ''; ?>">
+                                <div class="row align-items-end">
+                                    <div class="col-md-6">
+                                        <label for="new_phone" class="form-label">Update Phone Number</label>
+                                        <input type="text" class="form-control" id="new_phone" name="phone" 
+                                               value="<?php echo sanitizeInput($students[0]['phone'] ?? ''); ?>" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Update Contact Info
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -588,8 +651,8 @@ try {
                         </div>
                     </div>
                     
-                    <!-- Add New Student Section - Only for Administrators, Supervisors, and Lecturers -->
-                    <?php if (!in_array($_SESSION['user_role'], ['student'])): ?>
+                    <!-- Add New Student Section - Only for Admin, HOD, and Supervisor -->
+                    <?php if (in_array($_SESSION['user_role'], ['admin', 'hod', 'supervisor'])): ?>
                     <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0"><i class="fas fa-plus me-2"></i>Add New Student</h5>
@@ -638,7 +701,7 @@ try {
                                                 <option value="200">200</option>
                                                 <option value="300">300</option>
                                                 <option value="400">400</option>
-                                                <option value="500">500</option>
+                                                <option value="Top-Up">Top-Up</option>
                                             </select>
                                         </div>
                                     </div>
@@ -798,7 +861,7 @@ try {
                                                         <option value="200">200</option>
                                                         <option value="300">300</option>
                                                         <option value="400">400</option>
-                                                        <option value="500">500</option>
+                                                        <option value="Top-Up">Top-Up</option>
                                                     </select>
                                                 </div>
                                             </div>

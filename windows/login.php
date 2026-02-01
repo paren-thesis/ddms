@@ -110,7 +110,7 @@ function handleLogin() {
         <div class="container-fluid">
             <div class="row align-items-center">
                 <div class="col-md-2">
-                    <img src="../assets/Logo_Worldskills_Ghana.png" alt="HTU Logo" class="logo">
+                    <img src="../assets/compssa_logo.png" alt="COMPSSA Logo" class="logo">
                 </div>
                 <div class="col-md-8 text-center">
                     <h1 class="app-title"><?php echo APP_NAME; ?></h1>
@@ -155,11 +155,8 @@ function handleLogin() {
                         
                         <!-- Navigation Buttons -->
                         <div class="row">
-                            <div class="col-6">
-                                <a href="register.php" class="btn btn-secondary w-100">Create Account</a>
-                            </div>
-                            <div class="col-6">
-                                <a href="change_password.php" class="btn btn-secondary w-100">Change Password</a>
+                            <div class="col-12 text-center">
+                                <a href="change_password.php" class="btn btn-outline-secondary w-100">Change Password</a>
                             </div>
                         </div>
                     </div>

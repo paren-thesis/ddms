@@ -74,7 +74,7 @@ CREATE TABLE students (
     phone VARCHAR(20),
     programme_id INT NOT NULL,
     programme_level INT NOT NULL DEFAULT 100,
-    session_type ENUM('Regular', 'Weekend', 'Evening') DEFAULT 'Regular',
+    session_type ENUM('Regular', 'Weekend') DEFAULT 'Regular',
     current_academic_year VARCHAR(20),
     position VARCHAR(50) DEFAULT 'student',
     status ENUM('Active', 'Inactive', 'Graduated') DEFAULT 'Active',
@@ -162,10 +162,10 @@ INSERT INTO roles (role_name, role_level, description) VALUES
 ('student', 1, 'Restricted student access');
 
 INSERT INTO programmes (programme_code, programme_name) VALUES
-('BTECH-ICT', 'BTech Information Communication Technology'),
 ('BTECH-CS', 'BTech Computer Science'),
-('HND-ICT', 'HND Information Communication Technology'),
-('HND-CS', 'HND Computer Science');
+('BTECH-ICT', 'BTech Information and Communication Technology'),
+('HND-CS', 'HND Computer Science'),
+('HND-ICT', 'HND Information and Communication Technology');
 
 INSERT INTO academic_sessions (session_name, is_current) VALUES
 ('2023-2024', FALSE),

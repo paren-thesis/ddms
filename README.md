@@ -1,122 +1,323 @@
-# HTU COMPSSA CODEFEST 2025 - Departmental Dues Management System (DDMS)
+# HTU Departmental Dues Management System (DDMS)
 
-## Project Overview
-
-This is a professional web-based departmental dues management system developed for HTU COMPSSA CODEFEST 2025. The system provides a comprehensive solution for managing academic sessions, student records, fee categories, and payment processing with high-fidelity PDF receipt generation and real-time visual analytics.
-
-## Features
-
-- **Multi-role Authentication System**: Administrator, Supervisor, Lecturer, and Student roles with fine-grained permissions.
-- **Visual Analytics Dashboard**: Real-time revenue trends and payment completion charts using Chart.js on the main control panel.
-- **Student Data Management**: Advanced search, bulk CSV import, and soft-delete support for student records.
-- **Automated PDF Receipts**: Professional, dual-copy A4 receipts (Student & Department copies) generated automatically upon payment.
-- **Dues & Session Management**: Dynamic management of academic years/sessions and fee categories (mandatory vs. optional).
-- **Security & Auditing**: Comprehensive audit logs tracking every sensitive action (Data edits, Payments, Settings) with old/new value snapshots.
-- **Responsive Design**: Modern, premium UI following the COMPSSA style guide using Bootstrap 5.3.
-
-## Technology Stack
-
-- **Backend**: PHP 8.0+
-- **Database**: MySQL 8.0+
-- **PDF Generation**: FPDF Library (Lightweight, No external dependencies)
-- **Visualization**: Chart.js
-- **Frontend**: HTML5, CSS3, Bootstrap 5.3, Font Awesome 6.0
-- **Security**: PDO with prepared statements, bcrypt password hashing, input sanitization.
-
-## Database Design
-
-The system uses a normalized relational database schema designed for integrity and performance.
-
-### Tables Structure
-
-1. **roles** - User role definitions and access levels.
-2. **programmes** - Academic programmes offered by the department.
-3. **academic_sessions** - Management of academic years (Active vs. Historical).
-4. **users** - System users with role assignments and account status tracking.
-5. **students** - Detailed student profiles linked to programmes and sessions.
-6. **dues** - Configurable fee categories mapped to academic years.
-7. **payments** - Transactional records for dues payments.
-8. **payment_items** - Detailed breakdown of items covered in a single payment.
-9. **audit_logs** - Transparent tracking of all system changes including data snapshots.
-10. **configurations** - Global system settings and metadata.
-
-## Installation & Setup
-
-### Prerequisites
-
-1. XAMPP installed and running (Apache & MySQL).
-2. PHP 8.0 or higher.
-3. Web browser (Chrome/Edge recommended).
-
-### Setup Instructions
-
-1. **Clone/Download the Project**
-   Place the project folder in your XAMPP `htdocs` directory:
-   ```bash
-   C:\xampp\htdocs\ddms\
-   ```
-
-2. **Start Services**
-   Start Apache and MySQL from the XAMPP Control Panel.
-
-3. **Database Setup**
-   - Open phpMyAdmin (http://localhost/phpmyadmin).
-   - Create a new database named `htu_codefest_25`.
-   - Import the `database_setup.sql` file provided in the root directory.
-
-4. **Access the Application**
-   Navigate to `http://localhost/ddms/` in your browser.
-
-## Default Login Credentials
-
-- **Username**: `admin`
-- **Password**: `password` (was `admin123`)
-- **Role**: Administrator
-
-## Project Structure
-
-```
-ddms/
-├── assets/                 # Branding assets (COMPSSA Logos)
-├── config/                # System configuration
-│   ├── config.php        # App settings
-│   └── database.php      # DB connection
-├── css/                   # Stylesheets
-├── includes/              # Shared logic
-│   ├── fpdf.php          # PDF Library
-│   ├── functions.php     # Core utilities
-│   └── header.php        # Global UI header
-├── windows/               # Application Modules
-│   ├── login.php          # Auth entry
-│   ├── control.php        # Dashboard & Analytics
-│   ├── data.php           # Student records
-│   ├── payment.php        # Payment engine
-│   ├── generate_receipt.php # PDF Receipt logic
-│   ├── report.php         # Analytics engine
-│   ├── users.php          # User control
-│   ├── audit_logs.php     # Security auditor
-│   ├── settings.php       # System settings
-│   └── ...                # Other modules
-├── database_setup.sql     # Final schema
-├── students.csv           # Sample data
-└── README.md              # Documentation
-```
-
-## Security & Standards
-
-### Audit Logging
-The system implements a transparent audit trail. Every modification to critical data (Students, Payments, Sessions) logs the following:
-- User identity and timestamp.
-- Detailed JSON snapshots of data before and after the change.
-- Technical metadata (IP address, Browser agent).
-
-### Style Guide
-The UI strictly adheres to the COMPSSA 2025 style guide:
-- **Primary Colors**: Blue (#050589), Orange Brown (#FF8B00).
-- **Typography**: Professional Arial-based hierarchy.
-- **Branding**: Exclusive use of COMPSSA logos and department identity.
+A comprehensive web-based application for managing departmental dues, student records, and payments for the **Ho Technical University Computer Science Students Association (COMPSSA)**.
 
 ---
 
-**Developed for HTU COMPSSA CODEFEST 2025**  
-*IT Software Solutions for Business*
+## 📋 Table of Contents
+
+1. [Overview](#-overview)
+2. [Features](#-features)
+3. [Technology Stack](#-technology-stack)
+4. [Project Structure](#-project-structure)
+5. [Database Schema](#-database-schema)
+6. [Installation & Setup](#-installation--setup)
+7. [User Roles & Permissions](#-user-roles--permissions)
+8. [Module Documentation](#-module-documentation)
+9. [Usage Guide](#-usage-guide)
+10. [API & Functions Reference](#-api--functions-reference)
+11. [Troubleshooting](#-troubleshooting)
+
+---
+
+## 🎯 Overview
+
+The DDMS is a PHP-based web application developed for the HTU COMPSSA Codefest 2025. It provides a complete solution for:
+
+- Managing student records and dues
+- Processing and tracking payments
+- Generating official PDF receipts
+- Providing analytics and reporting
+- Maintaining audit trails for all system activities
+
+---
+
+## ✨ Features
+
+### Core Features
+- **User Authentication**: Secure login with password hashing, account lockout after 5 failed attempts
+- **Role-Based Access Control**: 5 distinct roles with granular permissions
+- **Student Management**: CRUD operations, CSV bulk import, search & filtering
+- **Payment Processing**: Record dues payments, auto-generate unique receipt numbers
+- **PDF Receipt Generation**: A4 dual-copy receipts (Student/Department) with FPDF
+- **Reporting & Analytics**: Visual dashboards with Chart.js, CSV export
+- **Audit Logging**: Complete activity tracking with before/after data snapshots
+
+### Security Features
+- Password hashing using `PASSWORD_DEFAULT` (bcrypt)
+- PDO prepared statements (SQL injection protection)
+- XSS protection via `htmlspecialchars()` sanitization
+- Session management with timeout controls
+- Soft delete for data recovery
+
+---
+
+## 🛠 Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Backend** | PHP 8.0+ |
+| **Database** | MySQL 8.0+ |
+| **Frontend** | Bootstrap 5.3, HTML5, CSS3 |
+| **PDF Generation** | FPDF Library |
+| **Charts** | Chart.js |
+| **Icons** | Font Awesome 6.0 |
+| **Server** | Apache (XAMPP) |
+
+---
+
+## 📁 Project Structure
+
+```
+ddms/
+├── index.php                 # Entry point (redirects to login)
+├── database_setup.sql        # Complete database schema
+├── setup_db.php             # Database initialization script
+├── students.csv             # Sample student data
+│
+├── config/
+│   ├── config.php           # Application configuration
+│   └── database.php         # Database connection settings
+│
+├── includes/
+│   ├── functions.php        # Utility functions library
+│   ├── header.php           # Common header component
+│   ├── fpdf.php             # FPDF PDF library
+│   ├── font/                # PDF fonts
+│   └── doc/                 # FPDF documentation
+│
+├── windows/
+│   ├── login.php            # Authentication
+│   ├── control.php          # Dashboard & navigation
+│   ├── data.php             # Student data management
+│   ├── payment.php          # Payment processing
+│   ├── report.php           # Reports & analytics
+│   ├── settings.php         # Sessions & dues management
+│   ├── users.php            # User administration
+│   ├── audit_logs.php       # Activity logs viewer
+│   ├── generate_receipt.php # PDF receipt generator
+│   └── change_password.php  # Password management
+│
+├── css/
+│   └── style.css            # Global styles (COMPSSA theme)
+│
+└── assets/
+    ├── compssa_logo.png     # Application logo
+    └── format/              # Receipt template assets
+```
+
+---
+
+## 🗄 Database Schema
+
+The system uses **10 normalized tables**:
+
+| Table | Description |
+|-------|-------------|
+| `roles` | User role definitions (admin, hod, cashier, supervisor, student) |
+| `users` | User accounts with authentication data |
+| `programmes` | Academic programmes (BTech-ICT, HND-CS, etc.) |
+| `academic_sessions` | Academic year management (2023-2024, 2024-2025) |
+| `students` | Student personal and academic information |
+| `dues` | Dues categories with amounts per academic year |
+| `payments` | Payment transaction records |
+| `payment_items` | Individual payment line items |
+| `audit_logs` | System activity tracking |
+| `configurations` | System settings key-value store |
+
+### Entity Relationships
+
+```
+roles (1) ──────── (N) users
+users (1) ──────── (0..1) students
+programmes (1) ─── (N) students
+students (1) ───── (N) payments
+payments (1) ───── (N) payment_items
+dues (1) ────────── (N) payment_items
+users (1) ────────── (N) audit_logs
+```
+
+---
+
+## 🚀 Installation & Setup
+
+### Prerequisites
+- XAMPP (PHP 8.0+ and MySQL 8.0+)
+- Modern web browser (Chrome, Edge, Firefox)
+
+### Step 1: Place Project Files
+```
+C:\xampp\htdocs\ddms
+```
+
+### Step 2: Start XAMPP Services
+1. Open XAMPP Control Panel
+2. Start **Apache** and **MySQL**
+
+### Step 3: Initialize Database
+1. Open [http://localhost/phpmyadmin](http://localhost/phpmyadmin)
+2. Create database: `ddms_database`
+3. Import: Select `database_setup.sql` from project root
+4. Click **Import/Go**
+
+### Step 4: Access Application
+Navigate to: [http://localhost/ddms](http://localhost/ddms)
+
+### Default Credentials
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | `admin` | `password` |
+
+---
+
+## 👥 User Roles & Permissions
+
+| Role | Level | Permissions |
+|------|-------|-------------|
+| **Admin** | 5 | Full system access - all modules |
+| **HOD** | 4 | Students, Payments, Reports, Settings, Audit Logs |
+| **Cashier** | 3 | Payments, Reports, Settings |
+| **Supervisor** | 2 | Students (view), Payments (view), Reports, Audit Logs |
+| **Student** | 1 | Own profile, Own payment history |
+
+---
+
+## 📖 Module Documentation
+
+### 1. Login Module (`login.php`)
+- Username/password authentication
+- Account lockout after 5 failed attempts
+- Forced password change support
+- Activity logging (login success/failure)
+
+### 2. Control Panel (`control.php`)
+- Role-based navigation cards
+- Quick statistics (students, payments, revenue)
+- Revenue trend chart (last 6 months)
+- Payment completion doughnut chart
+
+### 3. Student Data Module (`data.php`)
+- CSV bulk import with auto-correction
+- Add/Edit/Delete student records
+- Search by name, index no, email
+- Filter by programme and academic year
+- Students can update their own phone number
+
+### 4. Payment Module (`payment.php`)
+- Searchable student selection
+- Due category selection with auto-fill amount
+- Transaction recording with unique receipt numbers
+- Payment history with filtering
+- Students see their balance summary
+
+### 5. Reports Module (`report.php`)
+- Programme enrollment bar chart
+- Level distribution pie chart
+- Student payment summary table
+- CSV export functionality
+- Print-friendly layout
+
+### 6. Settings Module (`settings.php`)
+- Academic session management
+- Set current academic year
+- Dues category CRUD operations
+- Programme-specific dues support
+
+### 7. User Management (`users.php`)
+- Admin-only access
+- Create/Edit/Delete users
+- Role assignment
+- Account lock/unlock controls
+- Soft delete (archival)
+
+### 8. Audit Logs (`audit_logs.php`)
+- Filter by action, user, date range
+- View old/new values for changes
+- IP address and user agent tracking
+- Up to 500 entries displayed
+
+### 9. Receipt Generator (`generate_receipt.php`)
+- FPDF-based PDF generation
+- A4 portrait dual-copy layout
+- Amount in words conversion
+- Official COMPSSA branding
+
+---
+
+## 📝 Usage Guide
+
+### First-Time Setup
+1. Login as admin
+2. Go to **Settings** → Verify current academic year
+3. Add/edit **Dues Categories** for the current session
+
+### Processing a Payment
+1. Go to **Payment** window
+2. Search for student (by index or name)
+3. Select due category
+4. Enter amount and date
+5. Click **Post Payment**
+6. Print receipt (opens PDF in new tab)
+
+### Importing Students (CSV)
+1. Go to **Data** window
+2. Upload CSV file with format:
+   ```
+   Name,Index No,Program Level,Session,Programme Of Study,Password,Phone,Academic Year,Dues payed,Receipt No,Payment Date,Position,Status,Email
+   ```
+3. System auto-creates user accounts with index number as username
+
+---
+
+## 🔧 API & Functions Reference
+
+### Core Utility Functions (`includes/functions.php`)
+
+| Function | Description |
+|----------|-------------|
+| `sanitizeInput($input)` | XSS protection via htmlspecialchars |
+| `hashPassword($password)` | Create bcrypt hash |
+| `verifyPassword($password, $hash)` | Verify password |
+| `generateReceiptNumber()` | Create unique receipt ID |
+| `isLoggedIn()` | Check session state |
+| `hasRole($role)` | Verify user role |
+| `redirect($url)` | HTTP redirect |
+| `formatCurrency($amount)` | Format as "GHC X.XX" |
+| `getCurrentAcademicYear()` | Get current session |
+| `numberToWords($number)` | Convert amount to words |
+| `logActivity($action, ...)` | Create audit log entry |
+
+### Database Connection (`config/database.php`)
+
+```php
+$pdo = getDBConnection();
+```
+
+Returns a PDO instance with:
+- Exception mode enabled
+- Associative fetch mode
+- UTF-8 charset
+
+---
+
+## 🔍 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| **PDF Not Loading** | Ensure `includes/fpdf.php` exists; check for PHP warnings |
+| **Database Error** | Verify credentials in `config/database.php` |
+| **Login Issues** | Clear browser cache; check if account is locked |
+| **Incorrect Logo** | Clear cache; verify `assets/compssa_logo.png` exists |
+| **Session Timeout** | Re-login; adjust `SESSION_TIMEOUT` in config |
+
+---
+
+## 📄 License
+
+Built for **HTU COMPSSA Codefest 2025**
+
+---
+
+## 👨‍💻 Technical Contacts
+
+For technical support or contributions, contact the COMPSSA IT team.

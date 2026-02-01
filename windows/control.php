@@ -33,7 +33,7 @@ $email = $_SESSION['email'] ?? '';
 $role_permissions = [
     'admin' => ['data', 'payment', 'report', 'users', 'audit_logs', 'settings'],
     'hod' => ['data', 'payment', 'report', 'audit_logs', 'settings'],
-    'cashier' => ['payment'],
+    'cashier' => ['payment', 'report', 'settings'],
     'supervisor' => ['data', 'payment', 'report', 'audit_logs'],
     'student' => ['data', 'payment']
 ];
@@ -145,6 +145,7 @@ try {
                     </div>
                     
                     <!-- Quick Stats -->
+                    <?php if ($_SESSION['user_role'] !== 'student'): ?>
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="card">
@@ -186,8 +187,10 @@ try {
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
                     
                     <!-- Visual Analytics -->
+                    <?php if ($_SESSION['user_role'] !== 'student'): ?>
                     <div class="row mb-5">
                         <div class="col-md-8">
                             <div class="card h-100">
@@ -220,6 +223,7 @@ try {
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
                     
                     <!-- Navigation Cards -->
                     <div class="row">
@@ -373,6 +377,7 @@ try {
 
         // Initialize Charts
         document.addEventListener('DOMContentLoaded', function() {
+            <?php if ($_SESSION['user_role'] !== 'student'): ?>
             // Revenue Trend Chart
             const revenueCtx = document.getElementById('revenueChart').getContext('2d');
             new Chart(revenueCtx, {
@@ -432,6 +437,7 @@ try {
                     }
                 }
             });
+            <?php endif; ?>
         });
     </script>
 </body>

@@ -14,7 +14,7 @@ require_once '../config/config.php';
 require_once '../includes/functions.php';
 
 // Check if user is logged in and has permission
-if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'supervisor'])) {
+if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'cashier', 'supervisor'])) {
     redirect('login.php');
 }
 
@@ -101,7 +101,7 @@ try {
         <div class="container-fluid">
             <div class="row align-items-center">
                 <div class="col-md-2">
-                    <img src="../assets/Logo_Worldskills_Ghana.png" alt="HTU Logo" class="logo">
+                    <img src="../assets/compssa_logo.png" alt="COMPSSA Logo" class="logo">
                 </div>
                 <div class="col-md-8 text-center">
                     <h1 class="app-title"><?php echo APP_NAME; ?></h1>
@@ -153,11 +153,25 @@ try {
                         </div>
                     </div>
                     
-                    <!-- Export Button -->
-                    <div class="mb-4 text-end">
-                        <a href="?export=csv" class="btn btn-primary">
-                            <i class="fas fa-file-csv me-2"></i>Export CSV
-                        </a>
+                    <!-- Search and Export -->
+                    <div class="row mb-4 align-items-end">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" id="studentSearch" class="form-control border-start-0" 
+                                       placeholder="Search index no, name, programme..." onkeyup="filterTable()">
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button onclick="window.print()" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-print me-2"></i>Print Report
+                            </button>
+                            <a href="?export=csv" class="btn btn-primary">
+                                <i class="fas fa-file-csv me-2"></i>Export CSV
+                            </a>
+                        </div>
                     </div>
                     
                     <!-- Payment Summary Table -->
@@ -167,7 +181,7 @@ try {
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-striped table-hover">
+                                <table class="table table-striped table-hover" id="reportTable">
                                     <thead>
                                         <tr>
                                             <th>Index No</th>
@@ -222,7 +236,12 @@ try {
             new Chart(progCtx, {
                 type: 'bar',
                 data: {
-                    labels: <?php echo json_encode(array_column($programme_stats, 'programme_code')); ?>,
+                    labels: <?php 
+                        $labels = array_map(function($s) {
+                            return str_replace('-', ' ', $s['programme_code']);
+                        }, $programme_stats);
+                        echo json_encode($labels); 
+                    ?>,
                     datasets: [{
                         label: 'Number of Students',
                         data: <?php echo json_encode(array_column($programme_stats, 'count')); ?>,
@@ -263,6 +282,38 @@ try {
                 }
             });
         });
+
+        function filterTable() {
+            const input = document.getElementById('studentSearch');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('reportTable');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                let found = false;
+                const td = tr[i].getElementsByTagName('td');
+                for (let j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        const txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = found ? "" : "none";
+            }
+        }
     </script>
+    <style>
+        @media print {
+            .app-header, .mb-4, .input-group, #studentSearch, .btn, .col-md-2.text-end { display: none !important; }
+            .card { border: none !important; }
+            .card-header { background-color: #f8f9fa !important; border: 1px solid #dee2e6 !important; }
+            body { background: white !important; }
+            .row.mb-5 { display: flex !important; margin-bottom: 2rem !important; }
+            .col-md-6 { width: 50% !important; float: left !important; }
+        }
+    </style>
 </body>
 </html>

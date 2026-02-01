@@ -61,7 +61,7 @@ ddms/
 
 ### **A. Default Login**
 - **Username:** `admin`
-- **Password:** `admin123`
+- **Password:** `password`
 
 ### **B. Managing Sessions (First Step)**
 Go to **Dues & Sessions** (Settings) to:

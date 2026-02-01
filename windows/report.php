@@ -14,7 +14,7 @@ require_once '../config/config.php';
 require_once '../includes/functions.php';
 
 // Check if user is logged in and has permission
-if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['administrator', 'supervisor', 'lecturer'])) {
+if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'supervisor'])) {
     redirect('login.php');
 }
 

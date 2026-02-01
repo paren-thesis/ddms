@@ -7,8 +7,8 @@
 require_once '../config/config.php';
 require_once '../includes/functions.php';
 
-// Check if user is logged in and is an administrator
-if (!isLoggedIn() || !hasRole('administrator')) {
+// Check if user is logged in and is an admin or HOD
+if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod'])) {
     redirect('control.php');
 }
 
@@ -187,7 +187,7 @@ try {
         <div class="container-fluid">
             <div class="row align-items-center">
                 <div class="col-md-2">
-                    <img src="../assets/Logo_Worldskills_Ghana.png" alt="HTU Logo" class="logo">
+                    <img src="../assets/compssa_logo.png" alt="COMPSSA Logo" class="logo">
                 </div>
                 <div class="col-md-8 text-center">
                     <h1 class="app-title"><?php echo APP_NAME; ?></h1>

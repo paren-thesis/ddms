@@ -155,10 +155,11 @@ CREATE TABLE configurations (
 
 -- Insert Default Data
 INSERT INTO roles (role_name, role_level, description) VALUES
-('administrator', 5, 'Full system access'),
-('supervisor', 4, 'Department supervisor'),
-('lecturer', 2, 'Department lecturer'),
-('student', 1, 'Student access');
+('admin', 5, 'Full system access'),
+('hod', 4, 'Head of Department - Management & Reports'),
+('cashier', 3, 'Revenue and Payment Processing'),
+('supervisor', 2, 'Departmental oversight and monitoring'),
+('student', 1, 'Restricted student access');
 
 INSERT INTO programmes (programme_code, programme_name) VALUES
 ('BTECH-ICT', 'BTech Information Communication Technology'),
@@ -178,7 +179,7 @@ INSERT INTO configurations (config_key, config_value, description) VALUES
 ('system_name', 'HTU COMPSSA Dues Management System', 'Name of the application'),
 ('receipt_prefix', 'CSD', 'Prefix for receipt numbers');
 
--- Default Admin (Password: admin123)
+-- Default Admin (Password: password)
 INSERT INTO users (username, password_hash, email, first_name, last_name, role_id, must_change_password) VALUES
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@htu.edu.gh', 'System', 'Administrator', 1, FALSE);
 

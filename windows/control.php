@@ -31,10 +31,11 @@ $email = $_SESSION['email'] ?? '';
 
 // Define role-based permissions
 $role_permissions = [
-    'administrator' => ['data', 'payment', 'report', 'users', 'audit_logs', 'settings'],
-    'supervisor' => ['data', 'payment', 'report'],
-    'lecturer' => ['data', 'payment', 'report'],
-    'student' => ['data']
+    'admin' => ['data', 'payment', 'report', 'users', 'audit_logs', 'settings'],
+    'hod' => ['data', 'payment', 'report', 'audit_logs', 'settings'],
+    'cashier' => ['payment'],
+    'supervisor' => ['data', 'payment', 'report', 'audit_logs'],
+    'student' => ['data', 'payment']
 ];
 
 $user_permissions = $role_permissions[$user_role] ?? [];
@@ -228,18 +229,18 @@ try {
                                 <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="fas fa-users me-2"></i>
-                                        <?php echo ($_SESSION['user_role'] === 'student') ? 'Student Records' : 'Student Data'; ?>
+                                        <?php echo ($_SESSION['user_role'] === 'student') ? 'My Academic Record' : 'Student Data'; ?>
                                     </h5>
                                 </div>
                                 <div class="card-body text-center">
                                     <i class="fas fa-users fa-3x mb-3" style="color: var(--blue);"></i>
                                     <?php if ($_SESSION['user_role'] === 'student'): ?>
-                                        <p>View student information and search records (view only).</p>
+                                        <p>View your official student information and update your contact details.</p>
                                     <?php else: ?>
                                         <p>Manage student information, import CSV data, and search records.</p>
                                     <?php endif; ?>
                                     <a href="data.php" class="btn btn-primary w-100">
-                                        <?php echo ($_SESSION['user_role'] === 'student') ? 'View Records' : 'Access Data Window'; ?>
+                                        <?php echo ($_SESSION['user_role'] === 'student') ? 'View My Record' : 'Access Data Window'; ?>
                                     </a>
                                 </div>
                             </div>
@@ -252,18 +253,20 @@ try {
                                 <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="fas fa-credit-card me-2"></i>
-                                        <?php echo ($_SESSION['user_role'] === 'supervisor') ? 'Payment History' : 'Payment Processing'; ?>
+                                        <?php echo (in_array($_SESSION['user_role'], ['supervisor', 'student'])) ? 'Payment History' : 'Payment Processing'; ?>
                                     </h5>
                                 </div>
                                 <div class="card-body text-center">
                                     <i class="fas fa-credit-card fa-3x mb-3" style="color: var(--orange-brown);"></i>
-                                    <?php if ($_SESSION['user_role'] === 'supervisor'): ?>
-                                        <p>View payment history and track dues payments (view only).</p>
+                                    <?php if ($_SESSION['user_role'] === 'student'): ?>
+                                        <p>Check your dues balances and view your complete payment history.</p>
+                                    <?php elseif ($_SESSION['user_role'] === 'supervisor'): ?>
+                                        <p>View department payment history and track dues payments (view only).</p>
                                     <?php else: ?>
                                         <p>Process dues payments, generate receipts, and track payment history.</p>
                                     <?php endif; ?>
                                     <a href="payment.php" class="btn btn-primary w-100">
-                                        <?php echo ($_SESSION['user_role'] === 'supervisor') ? 'View Payments' : 'Access Payment Window'; ?>
+                                        <?php echo (in_array($_SESSION['user_role'], ['supervisor', 'student'])) ? 'View Payments' : 'Access Payment Window'; ?>
                                     </a>
                                 </div>
                             </div>

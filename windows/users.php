@@ -14,8 +14,8 @@
 require_once '../config/config.php';
 require_once '../includes/functions.php';
 
-// Check if user is logged in and is administrator
-if (!isLoggedIn() || $_SESSION['user_role'] !== 'administrator') {
+// Check if user is logged in and is admin
+if (!isLoggedIn() || $_SESSION['user_role'] !== 'admin') {
     redirect('login.php');
 }
 

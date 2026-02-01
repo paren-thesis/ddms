@@ -14,7 +14,7 @@ require_once '../config/config.php';
 require_once '../includes/functions.php';
 
 // Check if user is logged in and has permission
-if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['administrator', 'lecturer', 'supervisor'])) {
+if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'cashier', 'supervisor', 'student'])) {
     redirect('login.php');
 }
 
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     switch ($action) {
         case 'make_payment':
             // Only administrators and cashiers can process payments
-            if (in_array($_SESSION['user_role'], ['administrator', 'lecturer'])) {
+            if (in_array($_SESSION['user_role'], ['admin', 'cashier'])) {
                 handleMakePayment();
             } else {
                 $error_message = 'You do not have permission to process payments.';
@@ -130,22 +130,66 @@ try {
     $students = [];
 }
 
-// Get payment history (latest 20 payments)
+// Get payment history
 try {
+    $params = [];
+    $where_clause = "WHERE s.deleted_at IS NULL";
+    
+    if ($_SESSION['user_role'] === 'student') {
+        $where_clause .= " AND s.user_id = ?";
+        $params[] = $_SESSION['user_id'];
+    }
+    
     $sql = "SELECT p.*, s.index_no, s.first_name, s.last_name, u.username AS lecturer, d.due_name
             FROM payments p
             LEFT JOIN students s ON p.student_id = s.student_id
             LEFT JOIN users u ON p.created_by = u.user_id
             LEFT JOIN payment_items pi ON p.payment_id = pi.payment_id
             LEFT JOIN dues d ON pi.due_id = d.due_id
-            WHERE s.deleted_at IS NULL
+            $where_clause
             ORDER BY p.payment_id DESC
-            LIMIT 20";
+            LIMIT 50";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($params);
     $payments = $stmt->fetchAll();
 } catch (PDOException $e) {
     $payments = [];
+}
+
+// Fetch session-based balance summary for students
+$balance_summary = [];
+if ($_SESSION['user_role'] === 'student') {
+    try {
+        $sql = "SELECT d.academic_year, SUM(d.amount) as total_dues 
+                FROM dues d
+                JOIN students s ON (d.programme_id = s.programme_id OR d.programme_id IS NULL)
+                WHERE s.user_id = ? AND d.is_mandatory = 1 AND d.status = 'Active'
+                GROUP BY d.academic_year";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$_SESSION['user_id']]);
+        $dues_by_year = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        $sql = "SELECT academic_year, SUM(amount_paid) as total_paid
+                FROM payments p
+                JOIN students s ON p.student_id = s.student_id
+                WHERE s.user_id = ?
+                GROUP BY academic_year";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$_SESSION['user_id']]);
+        $paid_by_year = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        foreach ($dues_by_year as $year => $total_due) {
+            $paid = $paid_by_year[$year] ?? 0;
+            $balance_summary[] = [
+                'year' => $year,
+                'total_due' => $total_due,
+                'total_paid' => $paid,
+                'balance' => $total_due - $paid
+            ];
+        }
+    } catch (PDOException $e) {
+        // Silently fail
+    }
 }
 ?>
 
@@ -273,6 +317,38 @@ try {
                         </div>
                     </div>
                     <?php else: ?>
+                    <!-- Student/Supervisor Personal Summary -->
+                    <?php if ($_SESSION['user_role'] === 'student'): ?>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-wallet me-2"></i>My Outstanding Balances</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <?php if (empty($balance_summary)): ?>
+                                            <div class="col-12 text-center text-muted">No mandatory dues records found.</div>
+                                        <?php else: ?>
+                                            <?php foreach ($balance_summary as $summary): ?>
+                                                <div class="col-md-4 mb-3">
+                                                    <div class="p-3 border rounded text-center" style="background: #f8f9fa;">
+                                                        <h6 class="text-primary"><?php echo $summary['year']; ?></h6>
+                                                        <div class="mb-1"><strong>Dues:</strong> <?php echo formatCurrency($summary['total_due']); ?></div>
+                                                        <div class="mb-1 text-success"><strong>Paid:</strong> <?php echo formatCurrency($summary['total_paid']); ?></div>
+                                                        <div class="h5 mt-2 <?php echo $summary['balance'] > 0 ? 'text-danger' : 'text-success'; ?>">
+                                                            <strong>Balance:</strong> <?php echo formatCurrency($summary['balance']); ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php else: ?>
                     <!-- Supervisor View Only Message -->
                     <div class="card mb-4">
                         <div class="card-header">
@@ -286,6 +362,7 @@ try {
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
                     <?php endif; ?>
                     
                     <!-- Payment History Table -->

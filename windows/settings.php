@@ -7,8 +7,8 @@
 require_once '../config/config.php';
 require_once '../includes/functions.php';
 
-// Check if user is logged in and is an admin or HOD
-if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod'])) {
+// Check if user is logged in and has settings access
+if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'cashier'])) {
     redirect('control.php');
 }
 

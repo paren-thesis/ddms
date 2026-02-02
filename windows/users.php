@@ -62,6 +62,16 @@ function handleAddUser() {
         return;
     }
     
+    if (!isValidName($first_name) || !isValidName($last_name)) {
+        $error_message = 'Names should only contain letters, spaces, hyphens, or apostrophes.';
+        return;
+    }
+    
+    if (!empty($phone) && !isValidPhone($phone)) {
+        $error_message = 'Invalid phone number format. Please use 10-15 digits.';
+        return;
+    }
+    
     if (strlen($password) < 8) {
         $error_message = 'Password must be at least 8 characters long.';
         return;
@@ -123,6 +133,16 @@ function handleEditUser() {
     
     if (!isValidEmail($email)) {
         $error_message = 'Please enter a valid email address.';
+        return;
+    }
+    
+    if (!isValidName($first_name) || !isValidName($last_name)) {
+        $error_message = 'Names should only contain letters, spaces, hyphens, or apostrophes.';
+        return;
+    }
+    
+    if (!empty($phone) && !isValidPhone($phone)) {
+        $error_message = 'Invalid phone number format. Please use 10-15 digits.';
         return;
     }
     

@@ -120,27 +120,19 @@ function handlePasswordChange() {
                             </div>
                             <div class="mb-3">
                                 <label for="current_password" class="form-label">Current Password</label>
-                                <input type="password" class="form-control" id="current_password" name="current_password" required>
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="showCurrent" onchange="togglePassword('current_password', this.checked)">
-                                    <label class="form-check-label" for="showCurrent">Show Password</label>
-                                </div>
+                                <input type="password" class="form-control password-field" id="current_password" name="current_password" required>
                             </div>
                             <div class="mb-3">
                                 <label for="new_password_change" class="form-label">New Password</label>
-                                <input type="password" class="form-control" id="new_password_change" name="new_password_change" required>
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="showNew" onchange="togglePassword('new_password_change', this.checked)">
-                                    <label class="form-check-label" for="showNew">Show Password</label>
-                                </div>
+                                <input type="password" class="form-control password-field" id="new_password_change" name="new_password_change" required>
                             </div>
                             <div class="mb-3">
                                 <label for="confirm_new_password" class="form-label">Confirm New Password</label>
-                                <input type="password" class="form-control" id="confirm_new_password" name="confirm_new_password" required>
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="showConfirm" onchange="togglePassword('confirm_new_password', this.checked)">
-                                    <label class="form-check-label" for="showConfirm">Show Password</label>
-                                </div>
+                                <input type="password" class="form-control password-field" id="confirm_new_password" name="confirm_new_password" required>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="showAllPasswords" onchange="toggleAllPasswords(this.checked)">
+                                <label class="form-check-label" for="showAllPasswords">Show Passwords</label>
                             </div>
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary">Change Password</button>
@@ -161,9 +153,11 @@ function handlePasswordChange() {
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function togglePassword(inputId, show) {
-            const input = document.getElementById(inputId);
-            input.type = show ? 'text' : 'password';
+        function toggleAllPasswords(show) {
+            const fields = document.querySelectorAll('.password-field');
+            fields.forEach(field => {
+                field.type = show ? 'text' : 'password';
+            });
         }
     </script>
 </body>

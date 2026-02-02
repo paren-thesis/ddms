@@ -238,7 +238,7 @@ if ($_SESSION['user_role'] === 'student') {
             <div class="row">
                 <div class="col-12">
                     <h2 class="text-center mb-4" style="color: var(--blue); font-size: 28px; font-weight: bold;">
-                        Payment Processing
+                        <?php echo $_SESSION['user_role'] === 'student' ? 'Payment History' : 'Payment Processing'; ?>
                     </h2>
                     
                     <!-- Display Messages -->
@@ -414,10 +414,14 @@ if ($_SESSION['user_role'] === 'student') {
                                                     <td><?php echo sanitizeInput($payment['academic_year']); ?></td>
                                                     <td><?php echo sanitizeInput($payment['lecturer']); ?></td>
                                                     <td>
+                                                        <?php if ($_SESSION['user_role'] !== 'student'): ?>
                                                         <a href="generate_receipt.php?id=<?php echo $payment['payment_id']; ?>" 
                                                            target="_blank" class="btn btn-sm btn-outline-primary">
                                                             <i class="fas fa-print"></i>
                                                         </a>
+                                                        <?php else: ?>
+                                                        <span class="text-muted">-</span>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>

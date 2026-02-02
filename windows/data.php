@@ -478,6 +478,8 @@ function handleUpdateProfile() {
 $search = sanitizeInput($_GET['search'] ?? '');
 $programme_filter = sanitizeInput($_GET['programme'] ?? '');
 $year_filter = sanitizeInput($_GET['year'] ?? '');
+$level_filter = sanitizeInput($_GET['level'] ?? '');
+$session_filter = sanitizeInput($_GET['session'] ?? '');
 
 // Fetch students with search and filters
 try {
@@ -506,6 +508,16 @@ try {
     if (!empty($year_filter)) {
         $where_conditions[] = "s.current_academic_year = ?";
         $params[] = $year_filter;
+    }
+
+    if (!empty($level_filter)) {
+        $where_conditions[] = "s.programme_level = ?";
+        $params[] = $level_filter;
+    }
+
+    if (!empty($session_filter)) {
+        $where_conditions[] = "s.session_type = ?";
+        $params[] = $session_filter;
     }
     
     $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
@@ -660,11 +672,11 @@ try {
                         </div>
                         <div class="card-body">
                             <form method="GET" class="row">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="mb-3">
                                         <label for="search" class="form-label">Search</label>
                                         <input type="text" class="form-control" id="search" name="search" 
-                                               value="<?php echo $search; ?>" placeholder="Search by name, index, email...">
+                                               value="<?php echo $search; ?>" placeholder="Name, index, email...">
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -681,7 +693,30 @@ try {
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="level" class="form-label">Level</label>
+                                        <select class="form-control" id="level" name="level">
+                                            <option value="">All Levels</option>
+                                            <option value="100" <?php echo $level_filter == '100' ? 'selected' : ''; ?>>100</option>
+                                            <option value="200" <?php echo $level_filter == '200' ? 'selected' : ''; ?>>200</option>
+                                            <option value="300" <?php echo $level_filter == '300' ? 'selected' : ''; ?>>300</option>
+                                            <option value="400" <?php echo $level_filter == '400' ? 'selected' : ''; ?>>400</option>
+                                            <option value="Top-Up" <?php echo $level_filter == 'Top-Up' ? 'selected' : ''; ?>>Top-Up</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="session" class="form-label">Session</label>
+                                        <select class="form-control" id="session" name="session">
+                                            <option value="">All Sessions</option>
+                                            <option value="Regular" <?php echo $session_filter == 'Regular' ? 'selected' : ''; ?>>Regular</option>
+                                            <option value="Weekend" <?php echo $session_filter == 'Weekend' ? 'selected' : ''; ?>>Weekend</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
                                     <div class="mb-3">
                                         <label for="year" class="form-label">Academic Year</label>
                                         <select class="form-control" id="year" name="year">
@@ -695,9 +730,12 @@ try {
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-md-2">
-                                    <div class="d-grid">
-                                        <button type="submit" class="btn btn-secondary">
+                                <div class="col-md-12">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a href="data.php" class="btn btn-outline-secondary">
+                                            <i class="fas fa-undo me-2"></i>Reset
+                                        </a>
+                                        <button type="submit" class="btn btn-secondary px-4">
                                             <i class="fas fa-search me-2"></i>Search
                                         </button>
                                     </div>

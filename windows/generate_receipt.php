@@ -55,8 +55,8 @@ try {
         $currentY = $yOffset;
 
         // --- Header ---
-        if (file_exists('../assets/format/Compssa Logo.png')) {
-            $pdf->Image('../assets/format/Compssa Logo.png', 85, $currentY + 5, 40);
+        if (file_exists('../assets/compssa_receipt_logo.png')) {
+            $pdf->Image('../assets/compssa_receipt_logo.png', 85, $currentY + 5, 40);
         }
         
         $pdf->SetY($currentY + 32);

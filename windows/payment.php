@@ -218,7 +218,7 @@ if ($_SESSION['user_role'] === 'student') {
         <div class="container-fluid">
             <div class="row align-items-center">
                 <div class="col-md-2">
-                    <img src="../assets/Logo_Worldskills_Ghana.png" alt="HTU Logo" class="logo">
+                    <img src="../assets/compssa_logo.png" alt="HTU Logo" class="logo">
                 </div>
                 <div class="col-md-8 text-center">
                     <h1 class="app-title"><?php echo APP_NAME; ?></h1>

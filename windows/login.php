@@ -147,6 +147,10 @@ function handleLogin() {
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
                                 <input type="password" class="form-control" id="password" name="password" required>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="showPassword" onchange="togglePassword('password', this.checked)">
+                                    <label class="form-check-label" for="showPassword">Show Password</label>
+                                </div>
                             </div>
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary">Login</button>
@@ -168,5 +172,11 @@ function handleLogin() {
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword(inputId, show) {
+            const input = document.getElementById(inputId);
+            input.type = show ? 'text' : 'password';
+        }
+    </script>
 </body>
 </html> 

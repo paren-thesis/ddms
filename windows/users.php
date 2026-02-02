@@ -319,6 +319,10 @@ try {
                                 <div class="col-md-3">
                                     <label for="password" class="form-label">Password</label>
                                     <input type="password" class="form-control" id="password" name="password" required>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="showAddPassword" onchange="togglePassword('password', this.checked)">
+                                        <label class="form-check-label" for="showAddPassword">Show</label>
+                                    </div>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">&nbsp;</label>
@@ -474,6 +478,10 @@ try {
                         <div class="mb-3">
                             <label for="edit_password" class="form-label">New Password (leave blank to keep current)</label>
                             <input type="password" class="form-control" id="edit_password" name="password">
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="showEditPassword" onchange="togglePassword('edit_password', this.checked)">
+                                <label class="form-check-label" for="showEditPassword">Show Password</label>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -513,6 +521,11 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        function togglePassword(inputId, show) {
+            const input = document.getElementById(inputId);
+            input.type = show ? 'text' : 'password';
+        }
+
         function editUser(userId, username, email, role, firstName, lastName, phone, isActive, isLocked) {
             document.getElementById('edit_user_id').value = userId;
             document.getElementById('edit_username').value = username;
@@ -524,6 +537,7 @@ try {
             document.getElementById('edit_is_active').checked = isActive == 1;
             document.getElementById('edit_is_locked').checked = isLocked == 1;
             document.getElementById('edit_password').value = '';
+            document.getElementById('showEditPassword').checked = false;
             
             new bootstrap.Modal(document.getElementById('editUserModal')).show();
         }

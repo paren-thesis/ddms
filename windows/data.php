@@ -128,6 +128,25 @@ function handleCSVImport() {
                 continue;
             }
             
+            if (!isValidEmail($email)) {
+                $errors[] = "Invalid email format for student $index_no: $email";
+                continue;
+            }
+            
+            if (!empty($phone) && !isValidPhone($phone)) {
+                $errors[] = "Invalid phone format for student $index_no: $phone";
+                continue;
+            }
+
+            // Validate name format and content
+            $name_parts = explode(',', $name);
+            foreach ($name_parts as $part) {
+                if (!isValidName(trim($part))) {
+                    $errors[] = "Invalid name format for student $index_no: $name. Names should only contain letters and basic punctuation.";
+                    continue 2;
+                }
+            }
+            
             // 1. Handle User Account Creation
             $user_id = null;
             $stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
@@ -285,6 +304,21 @@ function handleAddStudent() {
         return;
     }
     
+    if (!isValidName($first_name) || !isValidName($last_name)) {
+        $error_message = 'Names should only contain letters, spaces, hyphens, or apostrophes.';
+        return;
+    }
+    
+    if (!empty($phone) && !isValidPhone($phone)) {
+        $error_message = 'Invalid phone number format. Please use 10-15 digits.';
+        return;
+    }
+    
+    if (!isValidEmail($email)) {
+        $error_message = 'Invalid email address format.';
+        return;
+    }
+    
     try {
         $pdo = getDBConnection();
         
@@ -326,6 +360,21 @@ function handleEditStudent() {
     
     if (empty($student_id) || empty($index_no) || empty($first_name) || empty($email)) {
         $error_message = 'Please fill in all required fields.';
+        return;
+    }
+    
+    if (!isValidName($first_name) || !isValidName($last_name)) {
+        $error_message = 'Names should only contain letters, spaces, hyphens, or apostrophes.';
+        return;
+    }
+    
+    if (!empty($phone) && !isValidPhone($phone)) {
+        $error_message = 'Invalid phone number format. Please use 10-15 digits.';
+        return;
+    }
+    
+    if (!isValidEmail($email)) {
+        $error_message = 'Invalid email address format.';
         return;
     }
     
@@ -391,6 +440,11 @@ function handleUpdateProfile() {
     
     if (empty($student_id) || empty($phone)) {
         $error_message = 'Phone number cannot be empty.';
+        return;
+    }
+    
+    if (!isValidPhone($phone)) {
+        $error_message = 'Invalid phone number format. Please use 10-15 digits.';
         return;
     }
     

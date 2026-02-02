@@ -86,6 +86,20 @@ function isValidEmail($email) {
 }
 
 /**
+ * Validate phone number (10-15 digits, optional +)
+ */
+function isValidPhone($phone) {
+    return preg_match('/^\+?[0-9]{10,15}$/', $phone);
+}
+
+/**
+ * Validate name (Letters, spaces, hyphens, and apostrophes)
+ */
+function isValidName($name) {
+    return !empty($name) && preg_match('/^[a-zA-Z\s\-\']+$/', $name);
+}
+
+/**
  * Get current academic year
  */
 function getCurrentAcademicYear() {

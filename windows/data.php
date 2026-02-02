@@ -598,7 +598,8 @@ try {
                     </div>
                     <?php endif; ?>
                     
-                    <!-- Search and Filter Section -->
+                    <!-- Search and Filter Section - Hidden for Students -->
+                    <?php if ($_SESSION['user_role'] !== 'student'): ?>
                     <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search & Filter</h5>
@@ -650,6 +651,7 @@ try {
                             </form>
                         </div>
                     </div>
+                    <?php endif; ?>
                     
                     <!-- Add New Student Section - Only for Admin, HOD, and Supervisor -->
                     <?php if (in_array($_SESSION['user_role'], ['admin', 'hod', 'supervisor'])): ?>

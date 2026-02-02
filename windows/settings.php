@@ -434,10 +434,16 @@ try {
         }
 
         function deleteDue(id) {
-            if (confirm('Are you sure you want to delete this due category?')) {
-                document.getElementById('delete_due_id').value = id;
-                document.getElementById('deleteDueForm').submit();
-            }
+            showConfirm({
+                title: 'Delete Category',
+                message: 'Are you sure you want to delete this due category?',
+                confirmBtnText: 'Delete',
+                confirmBtnClass: 'btn-danger',
+                onConfirm: function() {
+                    document.getElementById('delete_due_id').value = id;
+                    document.getElementById('deleteDueForm').submit();
+                }
+            });
         }
     </script>
 </body>

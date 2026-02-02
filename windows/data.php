@@ -960,6 +960,8 @@ try {
         </div>
     </main>
 
+    <?php include '../includes/modals.php'; ?>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -983,18 +985,22 @@ try {
         }
         
         function deleteStudent(studentId) {
-            console.log('Deleting student:', studentId);
-            
-            if (confirm('Are you sure you want to delete this student?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.innerHTML = `
-                    <input type="hidden" name="action" value="delete_student">
-                    <input type="hidden" name="student_id" value="${studentId}">
-                `;
-                document.body.appendChild(form);
-                form.submit();
-            }
+            showConfirm({
+                title: 'Delete Student',
+                message: 'Are you sure you want to delete this student record? This action will archive the student.',
+                confirmBtnText: 'Delete',
+                confirmBtnClass: 'btn-danger',
+                onConfirm: function() {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.innerHTML = `
+                        <input type="hidden" name="action" value="delete_student">
+                        <input type="hidden" name="student_id" value="${studentId}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
         }
     </script>
 </body>

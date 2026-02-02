@@ -664,87 +664,7 @@ try {
                     </div>
                     <?php endif; ?>
                     
-                    <!-- Search and Filter Section - Hidden for Students -->
-                    <?php if ($_SESSION['user_role'] !== 'student'): ?>
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search & Filter</h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="GET" class="row">
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label for="search" class="form-label">Search</label>
-                                        <input type="text" class="form-control" id="search" name="search" 
-                                               value="<?php echo $search; ?>" placeholder="Name, index, email...">
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label for="programme" class="form-label">Programme</label>
-                                        <select class="form-control" id="programme" name="programme">
-                                            <option value="">All Programmes</option>
-                                            <?php foreach ($programmes as $prog): ?>
-                                                <option value="<?php echo $prog['programme_id']; ?>" 
-                                                        <?php echo $programme_filter == $prog['programme_id'] ? 'selected' : ''; ?>>
-                                                    <?php echo $prog['programme_name']; ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        <label for="level" class="form-label">Level</label>
-                                        <select class="form-control" id="level" name="level">
-                                            <option value="">All Levels</option>
-                                            <option value="100" <?php echo $level_filter == '100' ? 'selected' : ''; ?>>100</option>
-                                            <option value="200" <?php echo $level_filter == '200' ? 'selected' : ''; ?>>200</option>
-                                            <option value="300" <?php echo $level_filter == '300' ? 'selected' : ''; ?>>300</option>
-                                            <option value="400" <?php echo $level_filter == '400' ? 'selected' : ''; ?>>400</option>
-                                            <option value="Top-Up" <?php echo $level_filter == 'Top-Up' ? 'selected' : ''; ?>>Top-Up</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        <label for="session" class="form-label">Session</label>
-                                        <select class="form-control" id="session" name="session">
-                                            <option value="">All Sessions</option>
-                                            <option value="Regular" <?php echo $session_filter == 'Regular' ? 'selected' : ''; ?>>Regular</option>
-                                            <option value="Weekend" <?php echo $session_filter == 'Weekend' ? 'selected' : ''; ?>>Weekend</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        <label for="year" class="form-label">Academic Year</label>
-                                        <select class="form-control" id="year" name="year">
-                                            <option value="">All Years</option>
-                                            <?php foreach ($academic_years as $yr): ?>
-                                                <option value="<?php echo $yr['current_academic_year']; ?>" 
-                                                        <?php echo $year_filter == $yr['current_academic_year'] ? 'selected' : ''; ?>>
-                                                    <?php echo $yr['current_academic_year']; ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <a href="data.php" class="btn btn-outline-secondary">
-                                            <i class="fas fa-undo me-2"></i>Reset
-                                        </a>
-                                        <button type="submit" class="btn btn-secondary px-4">
-                                            <i class="fas fa-search me-2"></i>Search
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    
+
                     <!-- Add New Student Section - Only for Admin, HOD, and Supervisor -->
                     <?php if (in_array($_SESSION['user_role'], ['admin', 'hod', 'supervisor'])): ?>
                     <div class="card mb-4">
@@ -840,6 +760,88 @@ try {
                         </div>
                     </div>
                     <?php endif; ?>
+                    
+                    <!-- Search and Filter Section - Hidden for Students -->
+                    <?php if ($_SESSION['user_role'] !== 'student'): ?>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search & Filter</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="GET" class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="search" class="form-label">Search</label>
+                                        <input type="text" class="form-control" id="search" name="search" 
+                                               value="<?php echo $search; ?>" placeholder="Name, index, email...">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="programme" class="form-label">Programme</label>
+                                        <select class="form-control" id="programme" name="programme">
+                                            <option value="">All Programmes</option>
+                                            <?php foreach ($programmes as $prog): ?>
+                                                <option value="<?php echo $prog['programme_id']; ?>" 
+                                                        <?php echo $programme_filter == $prog['programme_id'] ? 'selected' : ''; ?>>
+                                                    <?php echo $prog['programme_name']; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="level" class="form-label">Level</label>
+                                        <select class="form-control" id="level" name="level">
+                                            <option value="">All Levels</option>
+                                            <option value="100" <?php echo $level_filter == '100' ? 'selected' : ''; ?>>100</option>
+                                            <option value="200" <?php echo $level_filter == '200' ? 'selected' : ''; ?>>200</option>
+                                            <option value="300" <?php echo $level_filter == '300' ? 'selected' : ''; ?>>300</option>
+                                            <option value="400" <?php echo $level_filter == '400' ? 'selected' : ''; ?>>400</option>
+                                            <option value="Top-Up" <?php echo $level_filter == 'Top-Up' ? 'selected' : ''; ?>>Top-Up</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="session" class="form-label">Session</label>
+                                        <select class="form-control" id="session" name="session">
+                                            <option value="">All Sessions</option>
+                                            <option value="Regular" <?php echo $session_filter == 'Regular' ? 'selected' : ''; ?>>Regular</option>
+                                            <option value="Weekend" <?php echo $session_filter == 'Weekend' ? 'selected' : ''; ?>>Weekend</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="year" class="form-label">Academic Year</label>
+                                        <select class="form-control" id="year" name="year">
+                                            <option value="">All Years</option>
+                                            <?php foreach ($academic_years as $yr): ?>
+                                                <option value="<?php echo $yr['current_academic_year']; ?>" 
+                                                        <?php echo $year_filter == $yr['current_academic_year'] ? 'selected' : ''; ?>>
+                                                    <?php echo $yr['current_academic_year']; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a href="data.php" class="btn btn-outline-secondary">
+                                            <i class="fas fa-undo me-2"></i>Reset
+                                        </a>
+                                        <button type="submit" class="btn btn-secondary px-4">
+                                            <i class="fas fa-search me-2"></i>Search
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
                     
                     <!-- Students Table -->
                     <div class="card">

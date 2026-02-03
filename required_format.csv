@@ -1,0 +1,5 @@
+Name,Index No,Program Level,Session,Programme Of Study,Password,Phone,Academic Year,Dues payed,Receipt No,Payment Date,Position,Status,Email
+"Doe, John",012345678,200,Regular,BTech Computer Science,,0241112222,2024/2025,50.00,REC-99901,02.02.2025,student,Active,john.doe@example.com
+"Smith, Jane",098765432,100,Weekend,HND Information Technology,pass123,0245556666,2024/2025,0,,,student,Active,jane.smith@example.com
+"Mensah, Kofi",055544433,300,Regular,BTech Computer Science,,,2024/2025,120.00,REC-99902,01.02.2025,student,Active,kofi.mensah@example.com
+"Example, Admin",ADMIN01,400,Regular,Department Management,adminpass,0200000000,2024/2025,0,,,admin,Active,admin@htu.edu.gh

@@ -422,6 +422,8 @@ try {
         <input type="hidden" name="due_id" id="delete_due_id">
     </form>
 
+    <?php include '../includes/modals.php'; ?>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const editModal = new bootstrap.Modal(document.getElementById('editDueModal'));

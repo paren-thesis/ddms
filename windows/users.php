@@ -222,16 +222,41 @@ function handleDeleteUser() {
     }
 }
 
-// Fetch all users
+// Search and Filter logic
+$search = sanitizeInput($_GET['search'] ?? '');
+$role_filter = sanitizeInput($_GET['role_filter'] ?? '');
+
+// Fetch all users with search
 try {
     $pdo = getDBConnection();
+    
+    $where_clauses = ["u.deleted_at IS NULL"];
+    $params = [];
+    
+    if (!empty($search)) {
+        $where_clauses[] = "(u.username LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ?)";
+        $search_param = "%$search%";
+        $params[] = $search_param;
+        $params[] = $search_param;
+        $params[] = $search_param;
+        $params[] = $search_param;
+    }
+    
+    if (!empty($role_filter)) {
+        $where_clauses[] = "r.role_name = ?";
+        $params[] = $role_filter;
+    }
+    
+    $where_sql = implode(" AND ", $where_clauses);
+    
     $sql = "SELECT u.*, r.role_name 
             FROM users u 
             JOIN roles r ON u.role_id = r.role_id 
-            WHERE u.deleted_at IS NULL 
+            WHERE $where_sql 
             ORDER BY u.created_at DESC";
+            
     $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($params);
     $users = $stmt->fetchAll();
 } catch (PDOException $e) {
     $error_message = 'Failed to fetch users: ' . $e->getMessage();
@@ -353,6 +378,46 @@ try {
                             </form>
                         </div>
                     </div>
+
+                    <!-- Search and Filter Section -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search & Filter</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="GET" class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="search" class="form-label">Search</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" id="search" name="search" 
+                                               value="<?php echo $search; ?>" placeholder="Search by username, name, or email...">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="role_filter" class="form-label">Role Filter</label>
+                                    <select class="form-control" id="role_filter" name="role_filter">
+                                        <option value="">All Roles</option>
+                                        <?php foreach ($roles as $role_choice): ?>
+                                            <option value="<?php echo $role_choice['role_name']; ?>" 
+                                                    <?php echo $role_filter == $role_choice['role_name'] ? 'selected' : ''; ?>>
+                                                <?php echo ucfirst($role_choice['role_name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end gap-2">
+                                    <button type="submit" class="btn btn-secondary flex-grow-1">
+                                        Search
+                                    </button>
+                                    <a href="users.php" class="btn btn-outline-secondary">
+                                        Reset
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
                     
                     <!-- Users Table -->
                     <div class="card">

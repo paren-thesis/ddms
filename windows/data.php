@@ -109,11 +109,23 @@ function handleCSVImport() {
             // Name,Index No,Program Level,Session,Programme Of Study,Password,Phone,Academic Year,Dues payed,Recept No,Payment Date,Position ,Status,Email
             $name = sanitizeInput($data[0] ?? '');
             $index_no = sanitizeInput($data[1] ?? '');
+            
+            // Auto-restore leading zero for Index No (handling Excel's auto-format)
+            if (is_numeric($index_no) && strlen($index_no) >= 5 && strlen($index_no) <= 9 && $index_no[0] !== '0') {
+                $index_no = '0' . $index_no;
+            }
+
             $prog_level = (int)sanitizeInput($data[2] ?? '100');
             $session_type = sanitizeInput($data[3] ?? 'Regular');
             $programme_name = sanitizeInput($data[4] ?? '');
             $csv_password = $data[5] ?? $index_no;
             $phone = sanitizeInput($data[6] ?? '');
+
+            // Auto-restore leading zero for Phone (handling Excel's auto-format)
+            if (is_numeric($phone) && strlen($phone) === 9 && $phone[0] !== '0') {
+                $phone = '0' . $phone;
+            }
+
             $academic_year = sanitizeInput($data[7] ?? '');
             $dues_paid = (float)sanitizeInput($data[8] ?? '0');
             $receipt_no = sanitizeInput($data[9] ?? '');

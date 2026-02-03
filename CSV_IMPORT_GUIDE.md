@@ -24,11 +24,12 @@ To successfully import data into the Departmental Dues Management System, your C
 > [!IMPORTANT]
 > **Receipt No** is mandatory if **Dues Paid** is greater than 0.
 
-## Validation Rules
-1. **Name Format**: Must be `Lastname, Firstname` (comma separated).
-2. **Email**: Must be a valid email address.
-3. **Phone**: If provided, must be a valid 10-15 digit number.
-4. **Dates**: Use the format `DD.MM.YYYY` (dot separated).
+## Validation & Auto-Correction
+1. **Leading Zeros**: If Excel strips leading zeros from **Index No** or **Phone**, the system will automatically attempt to restore them if the value appears numeric.
+2. **Name Format**: Must be `Lastname, Firstname` (comma separated).
+3. **Email**: Must be a valid email address.
+4. **Phone**: If provided, must be a valid 10-15 digit number.
+5. **Dates**: Use the format `DD.MM.YYYY` (dot separated).
 
 ## Sample Data (Ready in required_format.csv)
 I have populated [required_format.csv](file:///c:/xampp/htdocs/ddms/required_format.csv) with sample records demonstrating these rules.

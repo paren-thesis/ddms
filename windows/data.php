@@ -115,8 +115,12 @@ function handleCSVImport() {
                 $index_no = '0' . $index_no;
             }
 
-            $prog_level = (int)sanitizeInput($data[2] ?? '100');
-            $session_type = sanitizeInput($data[3] ?? 'Regular');
+            $raw_prog_level = sanitizeInput($data[2] ?? '');
+            $prog_level = !empty($raw_prog_level) ? (int)$raw_prog_level : 100;
+            
+            $raw_session = sanitizeInput($data[3] ?? '');
+            $session_type = !empty($raw_session) ? $raw_session : 'Regular';
+            
             $programme_name = sanitizeInput($data[4] ?? '');
             $csv_password = $data[5] ?? $index_no;
             $phone = sanitizeInput($data[6] ?? '');
@@ -130,8 +134,13 @@ function handleCSVImport() {
             $dues_paid = (float)sanitizeInput($data[8] ?? '0');
             $receipt_no = sanitizeInput($data[9] ?? '');
             $payment_date_raw = sanitizeInput($data[10] ?? '');
-            $position = strtolower(trim(sanitizeInput($data[11] ?? 'student')));
-            $status = sanitizeInput($data[12] ?? 'Active');
+            
+            $raw_position = sanitizeInput($data[11] ?? '');
+            $position = !empty($raw_position) ? strtolower(trim($raw_position)) : 'student';
+            
+            $raw_status = sanitizeInput($data[12] ?? '');
+            $status = !empty($raw_status) ? $raw_status : 'Active';
+            
             $email = sanitizeInput($data[13] ?? '');
             
             // Validate required fields

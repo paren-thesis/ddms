@@ -145,6 +145,17 @@ CREATE TABLE audit_logs (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
+CREATE TABLE password_resets (
+    request_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('pending', 'completed') DEFAULT 'pending',
+    resolved_by INT,
+    resolved_at TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (resolved_by) REFERENCES users(user_id)
+);
+
 -- 10. CONFIGURATION TABLE
 CREATE TABLE configurations (
     config_id INT PRIMARY KEY AUTO_INCREMENT,

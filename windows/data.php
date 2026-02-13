@@ -143,6 +143,11 @@ function handleCSVImport() {
             
             $email = sanitizeInput($data[13] ?? '');
             
+            // Auto-generate email if empty
+            if (empty($email) && !empty($index_no)) {
+                $email = $index_no . '@htu.edu.gh';
+            }
+            
             // Validate required fields
             if (empty($index_no) || empty($email)) {
                 $errors[] = "Row missing required data: Index No or Email for $name";

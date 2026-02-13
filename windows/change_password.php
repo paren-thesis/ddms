@@ -109,33 +109,25 @@ function handlePasswordChange() {
                         <div class="alert alert-success"><?php echo $success_message; ?></div>
                     <?php endif; ?>
                     
-                    <!-- Password Change Form -->
+                    <!-- Password Reset Request Form -->
                     <div class="form-container">
-                        <h2 class="form-title">Change Password</h2>
+                        <h2 class="form-title">Request Password Reset</h2>
+                        <p class="text-center text-muted mb-4">Enter your Username or Index Number to request a password reset from the Administrator.</p>
+                        
                         <form method="POST" action="">
-                            <input type="hidden" name="action" value="change_password">
+                            <input type="hidden" name="action" value="request_reset">
                             <div class="mb-3">
-                                <label for="change_username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="change_username" name="change_username" required>
+                                <label for="username" class="form-label">Username / Index Number</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
                             </div>
+                            <!-- 
                             <div class="mb-3">
-                                <label for="current_password" class="form-label">Current Password</label>
-                                <input type="password" class="form-control password-field" id="current_password" name="current_password" required>
+                                <label for="email" class="form-label">Email Address (Optional verification)</label>
+                                <input type="email" class="form-control" id="email" name="email">
                             </div>
-                            <div class="mb-3">
-                                <label for="new_password_change" class="form-label">New Password</label>
-                                <input type="password" class="form-control password-field" id="new_password_change" name="new_password_change" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="confirm_new_password" class="form-label">Confirm New Password</label>
-                                <input type="password" class="form-control password-field" id="confirm_new_password" name="confirm_new_password" required>
-                            </div>
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="showAllPasswords" onchange="toggleAllPasswords(this.checked)">
-                                <label class="form-check-label" for="showAllPasswords">Show Passwords</label>
-                            </div>
+                            -->
                             <div class="d-grid mb-3">
-                                <button type="submit" class="btn btn-primary">Change Password</button>
+                                <button type="submit" class="btn btn-primary">Submit Request</button>
                             </div>
                         </form>
                         

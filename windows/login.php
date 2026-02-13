@@ -160,7 +160,7 @@ function handleLogin() {
                         <!-- Navigation Buttons -->
                         <div class="row">
                             <div class="col-12 text-center">
-                                <a href="change_password.php" class="btn btn-outline-secondary w-100">Change Password</a>
+                                <a href="change_password.php" class="btn btn-outline-secondary w-100">Request Password Reset</a>
                             </div>
                         </div>
                     </div>

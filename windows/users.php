@@ -222,6 +222,55 @@ function handleDeleteUser() {
     }
 }
 
+// Handle Password Reset Processing
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'process_reset') {
+    $request_id = sanitizeInput($_POST['request_id'] ?? '');
+    $user_id = sanitizeInput($_POST['reset_user_id'] ?? '');
+    $email = sanitizeInput($_POST['reset_email'] ?? '');
+    
+    // Generate new random password
+    $new_password = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'), 0, 10);
+    $hash = hashPassword($new_password);
+    
+    try {
+        $pdo = getDBConnection();
+        $pdo->beginTransaction();
+        
+        // Update user password
+        $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE user_id = ?");
+        $stmt->execute([$hash, $user_id]);
+        
+        // Mark request as completed
+        $stmt = $pdo->prepare("UPDATE password_resets SET status = 'completed', resolved_by = ?, resolved_at = CURRENT_TIMESTAMP WHERE request_id = ?");
+        $stmt->execute([$_SESSION['user_id'], $request_id]);
+        
+        $pdo->commit();
+        
+        // Simulate Email Sending
+        // In a real environment: mail($email, "Password Reset", "Your new password is: $new_password");
+        $success_message = "Password reset successfully. <br><strong>New Password: $new_password</strong><br><em>(In production, this would be emailed to $email)</em>";
+        
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        $error_message = "Failed to process reset: " . $e->getMessage();
+    }
+}
+
+// Fetch Pending Password Resets
+$pending_resets = [];
+try {
+    $pdo = getDBConnection();
+    $stmt = $pdo->prepare("SELECT r.*, u.username, u.email, u.first_name, u.last_name 
+                           FROM password_resets r 
+                           JOIN users u ON r.user_id = u.user_id 
+                           WHERE r.status = 'pending' 
+                           ORDER BY r.request_date ASC");
+    $stmt->execute();
+    $pending_resets = $stmt->fetchAll();
+} catch (PDOException $e) {
+    // Ignore error if table doesn't exist yet (handled by setup script)
+}
+
 // Search and Filter logic
 $search = sanitizeInput($_GET['search'] ?? '');
 $role_filter = sanitizeInput($_GET['role_filter'] ?? '');
@@ -417,6 +466,49 @@ try {
                             </form>
                         </div>
                     </div>
+                    
+                    <!-- Pending Password Resets -->
+                    <?php if (!empty($pending_resets)): ?>
+                    <div class="card mb-4 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-key me-2"></i>Pending Password Reset Requests</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>User</th>
+                                            <th>Email</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($pending_resets as $request): ?>
+                                            <tr>
+                                                <td><?php echo $request['request_date']; ?></td>
+                                                <td><?php echo sanitizeInput($request['username']); ?></td>
+                                                <td><?php echo sanitizeInput($request['email']); ?></td>
+                                                <td>
+                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Generate new password and send to user?');">
+                                                        <input type="hidden" name="action" value="process_reset">
+                                                        <input type="hidden" name="request_id" value="<?php echo $request['request_id']; ?>">
+                                                        <input type="hidden" name="reset_user_id" value="<?php echo $request['user_id']; ?>">
+                                                        <input type="hidden" name="reset_email" value="<?php echo $request['email']; ?>">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-paper-plane me-1"></i>Reset & Send
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     
                     
                     <!-- Users Table -->

@@ -61,7 +61,7 @@ function handleLogin() {
                 
                 if ($user['must_change_password']) {
                     $_SESSION['must_change_password'] = true;
-                    redirect('change_password.php');
+                    // No redirect, user goes to dashboard with a prompt
                 }
                 
                 // Redirect to control window

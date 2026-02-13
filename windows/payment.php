@@ -14,17 +14,8 @@ require_once '../config/config.php';
 require_once '../includes/functions.php';
 
 // Check if user is logged in and has permission
-// Check if user is logged in and has permission
 if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'cashier', 'supervisor', 'student'])) {
-   // Debugging session loss
-   echo "DEBUG: Session Check Failed.<br>";
-   echo "Logged In: " . (isLoggedIn() ? 'Yes' : 'No') . "<br>";
-   echo "Session ID: " . session_id() . "<br>";
-   echo "User ID: " . ($_SESSION['user_id'] ?? 'Not Set') . "<br>";
-   echo "User Role: " . ($_SESSION['user_role'] ?? 'Not Set') . "<br>";
-   echo "Request Method: " . $_SERVER['REQUEST_METHOD'] . "<br>";
-   exit();
-   // redirect('login.php');
+    redirect('login.php');
 }
 
 $error_message = '';

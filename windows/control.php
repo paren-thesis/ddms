@@ -24,6 +24,38 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     redirect('login.php');
 }
 
+// Handle Password Change / Prompt
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_password_prompt') {
+    $new_password = $_POST['new_password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+    $dont_show_again = isset($_POST['dont_show_again']) ? true : false;
+    
+    try {
+        $pdo = getDBConnection();
+        if ($dont_show_again) {
+            // User opted to keep current password
+            $stmt = $pdo->prepare("UPDATE users SET must_change_password = 0 WHERE user_id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            $_SESSION['must_change_password'] = false;
+            $success_message = "Preference saved. You can change your password later.";
+        } elseif (!empty($new_password) && !empty($confirm_password)) {
+            if ($new_password === $confirm_password) {
+                $hash = hashPassword($new_password);
+                $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?");
+                $stmt->execute([$hash, $_SESSION['user_id']]);
+                $_SESSION['must_change_password'] = false;
+                $success_message = "Password updated successfully.";
+            } else {
+                $error_message = "New passwords do not match.";
+            }
+        } else {
+            $error_message = "Please enter and confirm your new password.";
+        }
+    } catch (PDOException $e) {
+        $error_message = "Database error: " . $e->getMessage();
+    }
+}
+
 // Get user information
 $user_role = $_SESSION['user_role'] ?? '';
 $username = $_SESSION['username'] ?? '';
@@ -447,5 +479,67 @@ try {
             <?php endif; ?>
         });
     </script>
+
+    <!-- Password Change Modal -->
+    <?php if (isset($_SESSION['must_change_password']) && $_SESSION['must_change_password']): ?>
+    <div class="modal fade" id="passwordChangeModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="fas fa-shield-alt me-2"></i>Security Alert</h5>
+                </div>
+                <div class="modal-body">
+                    <p>You are likely using a default system password. For your security, we recommend changing it now.</p>
+                    <?php if (isset($error_message) && $error_message): ?>
+                        <div class="alert alert-danger"><?php echo $error_message; ?></div>
+                    <?php endif; ?>
+                    <form method="POST" id="passwordChangeForm">
+                        <input type="hidden" name="action" value="update_password_prompt">
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        </div>
+                        <hr>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="dont_show_again" id="dont_show_again" value="1">
+                            <label class="form-check-label" for="dont_show_again">
+                                Don't show this again (Keep current password)
+                            </label>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Update Password</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var myModal = new bootstrap.Modal(document.getElementById('passwordChangeModal'));
+            myModal.show();
+            
+            const checkbox = document.getElementById('dont_show_again');
+            const passFields = document.querySelectorAll('#passwordChangeForm input[type="password"]');
+            const submitBtn = document.querySelector('#passwordChangeForm button[type="submit"]');
+            
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    passFields.forEach(f => { f.disabled = true; f.required = false; });
+                    submitBtn.textContent = "Confirm Preference";
+                    submitBtn.classList.replace('btn-primary', 'btn-secondary');
+                } else {
+                    passFields.forEach(f => { f.disabled = false; f.required = true; });
+                    submitBtn.textContent = "Update Password";
+                    submitBtn.classList.replace('btn-secondary', 'btn-primary');
+                }
+            });
+        });
+    </script>
+    <?php endif; ?>
 </body>
 </html>

@@ -37,8 +37,10 @@ The DDMS is a PHP-based web application developed for the HTU COMPSSA Codefest 2
 ### Core Features
 - **User Authentication**: Secure login with password hashing, account lockout after 5 failed attempts
 - **Role-Based Access Control**: 5 distinct roles with granular permissions
-- **Student Management**: CRUD operations, CSV bulk import, search & filtering
-- **Payment Processing**: Record dues payments, auto-generate unique receipt numbers
+- **Student Management**: CRUD operations, CSV bulk import with Mac/Windows support, search & filtering
+- **Payment Processing**: "Review & Pay" preview step, auto-generate unique receipt numbers
+- **Email Receipts**: Automated HTML payment receipts via PHPMailer
+- **Password Reset System**: Student request flow with Admin fulfillment and email notifications
 - **PDF Receipt Generation**: A4 dual-copy receipts (Student/Department) with FPDF
 - **Reporting & Analytics**: Visual dashboards with Chart.js, CSV export
 - **Audit Logging**: Complete activity tracking with before/after data snapshots
@@ -60,7 +62,7 @@ The DDMS is a PHP-based web application developed for the HTU COMPSSA Codefest 2
 | **Database** | MySQL 8.0+ |
 | **Frontend** | Bootstrap 5.3, HTML5, CSS3 |
 | **PDF Generation** | FPDF Library |
-| **Charts** | Chart.js |
+| **Email Delivery** | PHPMailer 6.9 |
 | **Icons** | Font Awesome 6.0 |
 | **Server** | Apache (XAMPP) |
 
@@ -77,10 +79,16 @@ ddms/
 │
 ├── config/
 │   ├── config.php           # Application configuration
-│   └── database.php         # Database connection settings
+│   ├── database.php         # Database connection settings
+│   ├── email.php            # SMTP email settings (PHPMailer)
+│   └── example.email.php    # Email configuration template
+│
+├── libs/                    # External libraries
+│   └── PHPMailer-6.9.3/     # PHPMailer source files
 │
 ├── includes/
 │   ├── functions.php        # Utility functions library
+│   ├── email_helper.php     # Email sending functions
 │   ├── header.php           # Common header component
 │   ├── fpdf.php             # FPDF PDF library
 │   ├── font/                # PDF fonts
@@ -160,7 +168,12 @@ C:\xampp\htdocs\ddms
 3. Import: Select `database_setup.sql` from project root
 4. Click **Import/Go**
 
-### Step 4: Access Application
+### Step 4: Configure Email (SMTP)
+1. Open `config/email.php`
+2. Enter your Gmail address and **App Password**
+3. Set `MAIL_ENABLED` to `true`
+
+### Step 5: Access Application
 Navigate to: [http://localhost/ddms](http://localhost/ddms)
 
 ### Default Credentials
@@ -187,7 +200,8 @@ Navigate to: [http://localhost/ddms](http://localhost/ddms)
 ### 1. Login Module (`login.php`)
 - Username/password authentication
 - Account lockout after 5 failed attempts
-- Forced password change support
+- **Request Password Reset**: Students can submit reset requests
+- Dashboard change password prompt for first-time login
 - Activity logging (login success/failure)
 
 ### 2. Control Panel (`control.php`)
@@ -206,6 +220,8 @@ Navigate to: [http://localhost/ddms](http://localhost/ddms)
 ### 4. Payment Module (`payment.php`)
 - Searchable student selection
 - Due category selection with auto-fill amount
+- **Review & Pay**: Verification modal before submission
+- **Email Confirmation**: Automatic digital receipt delivery
 - Transaction recording with unique receipt numbers
 - Payment history with filtering
 - Students see their balance summary
@@ -226,6 +242,7 @@ Navigate to: [http://localhost/ddms](http://localhost/ddms)
 ### 7. User Management (`users.php`)
 - Admin-only access
 - Create/Edit/Delete users
+- **Reset Requests**: View and fulfill pending password resets
 - Role assignment
 - Account lock/unlock controls
 - Soft delete (archival)
@@ -256,16 +273,15 @@ Navigate to: [http://localhost/ddms](http://localhost/ddms)
 2. Search for student (by index or name)
 3. Select due category
 4. Enter amount and date
-5. Click **Post Payment**
-6. Print receipt (opens PDF in new tab)
+5. Click **Review & Pay** and verify details
+6. Click **Confirm & Process**
+7. Receipt is emailed automatically; print PDF if needed
 
 ### Importing Students (CSV)
 1. Go to **Data** window
-2. Upload CSV file with format:
-   ```
-   Name,Index No,Program Level,Session,Programme Of Study,Password,Phone,Academic Year,Dues payed,Receipt No,Payment Date,Position,Status,Email
-   ```
-3. System auto-creates user accounts with index number as username
+2. Upload CSV file with format (see [CSV Import Guide](CSV_IMPORT_GUIDE.md))
+3. Email auto-generates if missing (`index@htu.edu.gh`)
+4. System auto-creates user accounts with index number as username
 
 ---
 
@@ -286,6 +302,9 @@ Navigate to: [http://localhost/ddms](http://localhost/ddms)
 | `getCurrentAcademicYear()` | Get current session |
 | `numberToWords($number)` | Convert amount to words |
 | `logActivity($action, ...)` | Create audit log entry |
+| `sendEmail($to, $sub, $body)` | Send generic PHPMailer email |
+| `sendPaymentReceiptEmail()` | Send branded receipt email |
+| `sendPasswordResetEmail()` | Send reset password notification |
 
 ### Database Connection (`config/database.php`)
 
@@ -309,6 +328,8 @@ Returns a PDO instance with:
 | **Login Issues** | Clear browser cache; check if account is locked |
 | **Incorrect Logo** | Clear cache; verify `assets/compssa_logo.png` exists |
 | **Session Timeout** | Re-login; adjust `SESSION_TIMEOUT` in config |
+| **SMTP Error** | Verify Gmail App Password in `config/email.php` |
+| **CSV Row Mismatch** | Ensure at least 13 columns; check line endings |
 
 ---
 

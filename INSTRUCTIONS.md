@@ -50,10 +50,18 @@ ddms/
 ### **C. Database Initialization**
 
 1. Open [http://localhost/phpmyadmin](http://localhost/phpmyadmin).
-2. Create a database named `htu_codefest_25`.
+2. Create a database named `ddms_database`.
 3. Select the database and click the **Import** tab.
 4. Choose `database_setup.sql` from the root of the project.
 5. Click **Import/Go**.
+
+### **D. SMTP (Email) Configuration**
+
+To enable automated email receipts and password resets:
+1. Open `config/email.php`.
+2. Enter your Gmail address in `MAIL_USERNAME` and `MAIL_FROM_ADDRESS`.
+3. Generate a **Gmail App Password** and enter it in `MAIL_PASSWORD`.
+4. Set `MAIL_ENABLED` to `true`.
 
 ---
 
@@ -70,9 +78,15 @@ Go to **Dues & Sessions** (Settings) to:
 
 ### **C. Processing Payments**
 1. Search for a student in the **Payment** window.
-2. Select the dues items being paid.
-3. Click **Add Payment**.
-4. Click **Print Receipt** (PDF) to generate a dual-copy A4 receipt.
+2. Select the dues category.
+3. Click **Review & Pay** to see a preview of the transaction.
+4. Click **Confirm & Process** to finalize.
+5. A receipt will be automatically emailed to the student, and you can also click **Print Receipt** for a PDF.
+
+### **D. Password Resets**
+1. **Students**: Click "Request Password Reset" on the login page and enter index number.
+2. **Admin**: Go to **Users** module.
+3. Pending requests appear at the top. Click **Reset & Send** to generate a new password and email it.
 
 ### **D. Audit & Security**
 Use the **Audit Logs** window to track all changes. The system captures:

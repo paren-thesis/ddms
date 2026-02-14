@@ -1075,8 +1075,6 @@ try {
                                                     <select class="form-control" id="edit_session_type" name="session_type">
                                                         <option value="Regular">Regular</option>
                                                         <option value="Weekend">Weekend</option>
-                                                        <option value="Evening">Evening</option>
-                                                        <option value="Distance">Distance</option>
                                                     </select>
                                                 </div>
                                             </div>

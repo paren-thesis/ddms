@@ -143,7 +143,7 @@ try {
     $programmes = $stmt->fetchAll();
 
     // Get unique academic years for filter
-    $stmt = $pdo->query("SELECT DISTINCT academic_year FROM academic_sessions ORDER BY academic_year DESC");
+    $stmt = $pdo->query("SELECT DISTINCT session_name FROM academic_sessions ORDER BY session_name DESC");
     $academic_years = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
 } catch (PDOException $e) {
@@ -267,10 +267,21 @@ try {
                                         <option value="Weekend" <?php echo $session_filter == 'Weekend' ? 'selected' : ''; ?>>Weekend</option>
                                     </select>
                                 </div>
-                                <div class="col-md-2 d-flex align-items-end mb-3">
+                                <div class="col-md-2 mb-3">
+                                    <label for="year" class="form-label">Year</label>
+                                    <select class="form-control" id="year" name="year">
+                                        <option value="">All Years</option>
+                                        <?php foreach ($academic_years as $year): ?>
+                                            <option value="<?php echo $year; ?>" <?php echo $year_filter == $year ? 'selected' : ''; ?>>
+                                                <?php echo $year; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end mb-3">
                                     <div class="d-grid w-100">
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-sync-alt me-1"></i>Apply Filters
+                                            <i class="fas fa-search"></i>
                                         </button>
                                     </div>
                                 </div>

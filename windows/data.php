@@ -341,8 +341,18 @@ function handleAddStudent() {
     $academic_year = sanitizeInput($_POST['current_academic_year'] ?? '');
     $programme_id = sanitizeInput($_POST['programme_id'] ?? '');
     
-    if (empty($index_no) || empty($first_name) || empty($email)) {
-        $error_message = 'Please fill in all required fields.';
+    // Auto-generate email from index number if not provided
+    if (empty($email) && !empty($index_no)) {
+        $email = $index_no . '@htu.edu.gh';
+    }
+    
+    // Handle empty programme_id (avoid FK constraint violation)
+    if (empty($programme_id)) {
+        $programme_id = null;
+    }
+    
+    if (empty($index_no) || empty($first_name)) {
+        $error_message = 'Please fill in Index No and First Name.';
         return;
     }
     
@@ -737,8 +747,8 @@ try {
                                     </div>
                                     <div class="col-md-3">
                                         <div class="mb-3">
-                                            <label for="email" class="form-label">Email *</label>
-                                            <input type="email" class="form-control" id="email" name="email" required>
+                                            <label for="email" class="form-label">Email <small class="text-muted">(auto-fills from Index No)</small></label>
+                                            <input type="email" class="form-control" id="email" name="email" placeholder="Auto-generates if empty">
                                         </div>
                                     </div>
                                 </div>
@@ -1081,6 +1091,17 @@ try {
                     `;
                     document.body.appendChild(form);
                     form.submit();
+                }
+            });
+        }
+
+        // Auto-generate email from index number
+        const indexNoInput = document.getElementById('index_no');
+        if (indexNoInput) {
+            indexNoInput.addEventListener('blur', function() {
+                const emailInput = document.getElementById('email');
+                if (this.value.trim() && (!emailInput.value || emailInput.value === '')) {
+                    emailInput.value = this.value.trim() + '@htu.edu.gh';
                 }
             });
         }

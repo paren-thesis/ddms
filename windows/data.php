@@ -574,11 +574,25 @@ try {
     
     $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
     
+    // Pagination logic
+    $records_per_page = 15;
+    $current_page = max(1, (int)($_GET['page'] ?? 1));
+    $offset = ($current_page - 1) * $records_per_page;
+    
+    // Get total count for pagination
+    $count_sql = "SELECT COUNT(*) FROM students s $where_clause";
+    $count_stmt = $pdo->prepare($count_sql);
+    $count_stmt->execute($params);
+    $total_records = $count_stmt->fetchColumn();
+    $total_pages = ceil($total_records / $records_per_page);
+    
+    // Fetch students with LIMIT and OFFSET
     $sql = "SELECT s.*, p.programme_name, p.programme_code 
             FROM students s 
             LEFT JOIN programmes p ON s.programme_id = p.programme_id 
             $where_clause 
-            ORDER BY s.first_name, s.last_name";
+            ORDER BY s.first_name, s.last_name
+            LIMIT $records_per_page OFFSET $offset";
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -960,11 +974,55 @@ try {
                                                 </tr>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                                    <?php if (empty($students)): ?>
+                                        <tr>
+                                            <td colspan="8" class="text-center py-4 text-muted">No student records found.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+
+                    <!-- Pagination Navigation -->
+                    <?php if ($total_pages > 1): ?>
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <?php 
+                                // Build current query params to preserve them in links
+                                $query_params = $_GET;
+                            ?>
+                            
+                            <li class="page-item <?php echo ($current_page <= 1) ? 'disabled' : ''; ?>">
+                                <?php 
+                                    $prev_params = $query_params;
+                                    $prev_params['page'] = $current_page - 1;
+                                ?>
+                                <a class="page-link" href="?<?php echo http_build_query($prev_params); ?>" tabindex="-1">
+                                    <i class="fas fa-chevron-left me-1"></i> Back
+                                </a>
+                            </li>
+
+                            <li class="page-item disabled">
+                                <span class="page-link text-dark bg-light px-4">
+                                    Page <strong><?php echo $current_page; ?></strong> of <strong><?php echo $total_pages; ?></strong>
+                                    <span class="ms-2 text-muted small">(<?php echo $total_records; ?> total)</span>
+                                </span>
+                            </li>
+
+                            <li class="page-item <?php echo ($current_page >= $total_pages) ? 'disabled' : ''; ?>">
+                                <?php 
+                                    $next_params = $query_params;
+                                    $next_params['page'] = $current_page + 1;
+                                ?>
+                                <a class="page-link" href="?<?php echo http_build_query($next_params); ?>">
+                                    Next <i class="fas fa-chevron-right ms-1"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    <?php endif; ?>
+
 
                     <!-- Edit Student Modal -->
                     <div class="modal fade" id="editStudentModal" tabindex="-1">

@@ -13,6 +13,7 @@
 
 require_once '../config/config.php';
 require_once '../includes/functions.php';
+require_once '../includes/email_helper.php';
 
 // Check if user is logged in and is admin
 if (!isLoggedIn() || $_SESSION['user_role'] !== 'admin') {
@@ -246,9 +247,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         
         $pdo->commit();
         
-        // Simulate Email Sending
-        // In a real environment: mail($email, "Password Reset", "Your new password is: $new_password");
-        $success_message = "Password reset successfully. <br><strong>New Password: $new_password</strong><br><em>(In production, this would be emailed to $email)</em>";
+        // Get username for the email
+        $stmt = $pdo->prepare("SELECT username FROM users WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $reset_username = $stmt->fetchColumn();
+        
+        // Send email via PHPMailer
+        $email_result = sendPasswordResetEmail($email, $reset_username, $new_password);
+        
+        if ($email_result['success']) {
+            $success_message = "Password reset successfully. Email sent to <strong>$email</strong>.";
+        } else {
+            $success_message = "Password reset successfully.<br><strong>New Password: $new_password</strong><br><em>Email not sent: " . htmlspecialchars($email_result['message']) . "</em>";
+        }
         
     } catch (PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();

@@ -86,6 +86,18 @@ function handleCSVImport() {
             return;
         }
 
+        // Enable auto-detection of line endings (\r, \n, \r\n)
+        $prev_line_ending = ini_get('auto_detect_line_endings');
+        ini_set('auto_detect_line_endings', true);
+        
+        // Re-open file with line ending detection enabled
+        fclose($handle);
+        $handle = fopen($file['tmp_name'], 'r');
+        if (!$handle) {
+            $error_message = 'Unable to re-read the CSV file.';
+            return;
+        }
+
         // 0. Verify current session user exists (in case of DB reset/wipe)
         $session_user_id = $_SESSION['user_id'];
         $stmt = $pdo->prepare("SELECT user_id FROM users WHERE user_id = ? AND deleted_at IS NULL");
@@ -100,8 +112,8 @@ function handleCSVImport() {
         $errors = [];
         
         while (($data = fgetcsv($handle)) !== false) {
-            if (count($data) < 14) {
-                $errors[] = "Row has insufficient data (expected 14 columns)";
+            if (count($data) < 13) {
+                $errors[] = "Row has insufficient data (expected at least 13 columns)";
                 continue;
             }
             
@@ -122,7 +134,10 @@ function handleCSVImport() {
             $session_type = !empty($raw_session) ? $raw_session : 'Regular';
             
             $programme_name = sanitizeInput($data[4] ?? '');
-            $csv_password = $data[5] ?? $index_no;
+            
+            // Password logic: Use CSV password if provided, otherwise use Index No WITHOUT leading zero
+            $csv_password = !empty($data[5]) ? $data[5] : ltrim($index_no, '0');
+            
             $phone = sanitizeInput($data[6] ?? '');
 
             // Auto-restore leading zero for Phone (handling Excel's auto-format)
@@ -294,6 +309,7 @@ function handleCSVImport() {
         }
         
         fclose($handle);
+        ini_set('auto_detect_line_endings', $prev_line_ending);
         $pdo->commit();
         
         if ($imported_count > 0) {

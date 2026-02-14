@@ -15,56 +15,51 @@ require_once '../includes/functions.php';
 $error_message = '';
 $success_message = '';
 
-// Handle password change form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'change_password') {
-    handlePasswordChange();
+// Handle password reset request submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_reset') {
+    handleRequestReset();
 }
 
-function handlePasswordChange() {
+function handleRequestReset() {
     global $error_message, $success_message;
     
-    $username = sanitizeInput($_POST['change_username'] ?? '');
-    $current_password = $_POST['current_password'] ?? '';
-    $new_password = $_POST['new_password_change'] ?? '';
-    $confirm_new_password = $_POST['confirm_new_password'] ?? '';
+    $username = sanitizeInput($_POST['username'] ?? '');
     
-    if (empty($username) || empty($current_password) || empty($new_password)) {
-        $error_message = 'Please fill in all fields.';
-        return;
-    }
-    
-    if ($new_password !== $confirm_new_password) {
-        $error_message = 'New passwords do not match.';
-        return;
-    }
-    
-    if (strlen($new_password) < 8) {
-        $error_message = 'New password must be at least 8 characters long.';
+    if (empty($username)) {
+        $error_message = 'Please enter your username or index number.';
         return;
     }
     
     try {
         $pdo = getDBConnection();
         
-        // Verify current password
-        $stmt = $pdo->prepare("SELECT user_id, password_hash FROM users WHERE username = ? AND is_active = 1 AND deleted_at IS NULL");
+        // Check if user exists
+        $stmt = $pdo->prepare("SELECT user_id, email FROM users WHERE username = ? AND is_active = 1 AND deleted_at IS NULL");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
         
-        if (!$user || !verifyPassword($current_password, $user['password_hash'])) {
-            $error_message = 'Invalid username or current password.';
-            return;
+        if ($user) {
+            // Check for existing pending request
+            $stmt = $pdo->prepare("SELECT request_id FROM password_resets WHERE user_id = ? AND status = 'pending'");
+            $stmt->execute([$user['user_id']]);
+            if ($stmt->fetch()) {
+                $error_message = 'You already have a pending request. Please wait for the administrator to process it.';
+                return;
+            }
+
+            // Create reset request
+            $stmt = $pdo->prepare("INSERT INTO password_resets (user_id) VALUES (?)");
+            $stmt->execute([$user['user_id']]);
+            
+            $success_message = 'Your password reset request has been submitted. The administrator will review it and send you a new password.';
+        } else {
+            // Generic message for security (don't reveal if user exists)
+            $success_message = 'If an account with that username exists, a reset request has been submitted.';
         }
         
-        // Update password and reset must_change_password
-        $new_password_hash = hashPassword($new_password);
-        $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = FALSE WHERE user_id = ?");
-        $stmt->execute([$new_password_hash, $user['user_id']]);
-        
-        $success_message = 'Password changed successfully! You can now login with your new password.';
-        
     } catch (PDOException $e) {
-        $error_message = 'Password change failed. Please try again.';
+        $error_message = 'Request failed. Please try again later.';
+        error_log("Password reset request error: " . $e->getMessage());
     }
 }
 ?>

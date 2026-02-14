@@ -160,16 +160,59 @@ try {
     $students = [];
 }
 
-// Get payment history
+// Get unique academic years for filter
+try {
+    $stmt = $pdo->query("SELECT DISTINCT session_name FROM academic_sessions ORDER BY session_name DESC");
+    $academic_years = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (PDOException $e) {
+    $academic_years = [];
+}
+
+// Get search and filter parameters
+$search = sanitizeInput($_GET['search'] ?? '');
+$year_filter = sanitizeInput($_GET['year'] ?? '');
+
+// Pagination logic
+$records_per_page = 15;
+$current_page = max(1, (int)($_GET['page'] ?? 1));
+$offset = ($current_page - 1) * $records_per_page;
+
+// Get payment history with filters
 try {
     $params = [];
-    $where_clause = "WHERE s.deleted_at IS NULL";
+    $where_conditions = ["1=1"];
     
     if ($_SESSION['user_role'] === 'student') {
-        $where_clause .= " AND s.user_id = ?";
+        $where_conditions[] = "s.user_id = ?";
         $params[] = $_SESSION['user_id'];
     }
+
+    if (!empty($search)) {
+        $where_conditions[] = "(s.index_no LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ? OR p.receipt_no LIKE ?)";
+        $search_param = "%$search%";
+        $params[] = $search_param;
+        $params[] = $search_param;
+        $params[] = $search_param;
+        $params[] = $search_param;
+    }
+
+    if (!empty($year_filter)) {
+        $where_conditions[] = "p.academic_year = ?";
+        $params[] = $year_filter;
+    }
+
+    $where_clause = "WHERE " . implode(" AND ", $where_conditions);
     
+    // Get total count for pagination
+    $count_sql = "SELECT COUNT(DISTINCT p.payment_id) 
+                  FROM payments p
+                  LEFT JOIN students s ON p.student_id = s.student_id
+                  $where_clause";
+    $count_stmt = $pdo->prepare($count_sql);
+    $count_stmt->execute($params);
+    $total_records = $count_stmt->fetchColumn();
+    $total_pages = ceil($total_records / $records_per_page);
+
     $sql = "SELECT p.*, s.index_no, s.first_name, s.last_name, u.username AS lecturer, d.due_name
             FROM payments p
             LEFT JOIN students s ON p.student_id = s.student_id
@@ -178,12 +221,14 @@ try {
             LEFT JOIN dues d ON pi.due_id = d.due_id
             $where_clause
             ORDER BY p.payment_id DESC
-            LIMIT 50";
+            LIMIT $records_per_page OFFSET $offset";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $payments = $stmt->fetchAll();
 } catch (PDOException $e) {
     $payments = [];
+    $total_records = 0;
+    $total_pages = 0;
 }
 
 // Fetch session-based balance summary for students
@@ -401,6 +446,49 @@ if ($_SESSION['user_role'] === 'student') {
                             <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Payments</h5>
                         </div>
                         <div class="card-body">
+                            <!-- Search & Filter Bar -->
+                            <form method="GET" class="mb-4">
+                                <div class="row g-3">
+                                    <div class="col-md-5">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" name="search" class="form-control border-start-0" 
+                                                   placeholder="Search Index No, Name, or Receipt..." 
+                                                   value="<?php echo sanitizeInput($search); ?>">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0">
+                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                            </span>
+                                            <select name="year" class="form-select border-start-0">
+                                                <option value="">All Academic Years</option>
+                                                <?php foreach ($academic_years as $year): ?>
+                                                    <option value="<?php echo $year; ?>" <?php echo ($year_filter === $year) ? 'selected' : ''; ?>>
+                                                        <?php echo $year; ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="fas fa-filter me-1"></i> Filter
+                                            </button>
+                                            <?php if (!empty($search) || !empty($year_filter)): ?>
+                                                <a href="payment.php" class="btn btn-outline-secondary">
+                                                    <i class="fas fa-times"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover">
                                     <thead>
@@ -450,6 +538,44 @@ if ($_SESSION['user_role'] === 'student') {
                                     </tbody>
                                 </table>
                             </div>
+
+                            <!-- Pagination Navigation -->
+                            <?php if ($total_pages > 1): ?>
+                            <nav aria-label="Page navigation" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    <?php 
+                                        $query_params = $_GET;
+                                        unset($query_params['page']); // Clear existing page
+                                    ?>
+                                    <li class="page-item <?php echo ($current_page <= 1) ? 'disabled' : ''; ?>">
+                                        <?php 
+                                            $prev_params = $query_params;
+                                            $prev_params['page'] = $current_page - 1;
+                                        ?>
+                                        <a class="page-link" href="?<?php echo http_build_query($prev_params); ?>">
+                                            <i class="fas fa-chevron-left me-1"></i> Previous
+                                        </a>
+                                    </li>
+
+                                    <li class="page-item disabled">
+                                        <span class="page-link text-dark bg-light px-4">
+                                            Page <strong><?php echo $current_page; ?></strong> of <strong><?php echo $total_pages; ?></strong>
+                                            <span class="ms-2 text-muted small">(<?php echo $total_records; ?> total)</span>
+                                        </span>
+                                    </li>
+
+                                    <li class="page-item <?php echo ($current_page >= $total_pages) ? 'disabled' : ''; ?>">
+                                        <?php 
+                                            $next_params = $query_params;
+                                            $next_params['page'] = $current_page + 1;
+                                        ?>
+                                        <a class="page-link" href="?<?php echo http_build_query($next_params); ?>">
+                                            Next <i class="fas fa-chevron-right ms-1"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

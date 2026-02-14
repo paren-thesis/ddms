@@ -12,6 +12,7 @@
 
 require_once '../config/config.php';
 require_once '../includes/functions.php';
+require_once '../includes/email_helper.php';
 
 // Check if user is logged in and has permission
 if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'cashier', 'supervisor', 'student'])) {
@@ -102,8 +103,37 @@ function handleMakePayment() {
             'receipt_no' => $receipt_no
         ]);
         
+        // Send email receipt to student
+        $email_note = '';
+        $student_email = $student['email'] ?? '';
+        // If student has no direct email, check via user account
+        if (empty($student_email) && !empty($student['user_id'])) {
+            $stmt = $pdo->prepare("SELECT email FROM users WHERE user_id = ?");
+            $stmt->execute([$student['user_id']]);
+            $student_email = $stmt->fetchColumn() ?: '';
+        }
+        
+        if (!empty($student_email)) {
+            $email_result = sendPaymentReceiptEmail($student_email, [
+                'receipt_no' => $receipt_no,
+                'student_name' => $student['first_name'] . ' ' . $student['last_name'],
+                'index_no' => $student['index_no'],
+                'due_name' => $due['due_name'],
+                'amount_paid' => $amount,
+                'total_due' => $due['amount'],
+                'balance' => $balance,
+                'payment_date' => $payment_date,
+                'academic_year' => $academic_year
+            ]);
+            if ($email_result['success']) {
+                $email_note = ' <span class="text-info"><i class="fas fa-envelope me-1"></i>Receipt emailed to ' . htmlspecialchars($student_email) . '</span>';
+            } else {
+                $email_note = ' <span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Email not sent: ' . htmlspecialchars($email_result['message']) . '</span>';
+            }
+        }
+        
         $success_message = 'Payment processed successfully! Receipt No: ' . $receipt_no . 
-                           ' <a href="generate_receipt.php?id='.$payment_id.'" target="_blank" class="btn btn-sm btn-success ms-3"><i class="fas fa-print me-1"></i>Print Receipt</a>';
+                           ' <a href="generate_receipt.php?id='.$payment_id.'" target="_blank" class="btn btn-sm btn-success ms-3"><i class="fas fa-print me-1"></i>Print Receipt</a>' . $email_note;
         
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -306,8 +336,8 @@ if ($_SESSION['user_role'] === 'student') {
                                     </div>
                                     <div class="col-md-2 d-flex align-items-end">
                                         <div class="d-grid w-100 mb-3">
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-receipt me-2"></i>Post Payment
+                                            <button type="button" class="btn btn-primary" id="previewPaymentBtn">
+                                                <i class="fas fa-eye me-2"></i>Review & Pay
                                             </button>
                                         </div>
                                     </div>
@@ -427,50 +457,198 @@ if ($_SESSION['user_role'] === 'student') {
         </div>
     </main>
 
+    <!-- Payment Preview Modal -->
+    <?php if (in_array($_SESSION['user_role'], ['admin', 'hod', 'cashier'])): ?>
+    <div class="modal fade" id="paymentPreviewModal" tabindex="-1" aria-labelledby="paymentPreviewLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #050589;">
+                    <h5 class="modal-title text-white" id="paymentPreviewLabel">
+                        <i class="fas fa-receipt me-2"></i>Confirm Payment Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Please review the payment details below before proceeding.</p>
+                    <table class="table table-bordered mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold text-muted" style="width:40%">Student</td>
+                                <td id="preview_student" class="fw-bold"></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Due Category</td>
+                                <td id="preview_due"></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Total Due</td>
+                                <td id="preview_total_due"></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Paying Now</td>
+                                <td id="preview_amount" class="fw-bold text-success fs-5"></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Balance After</td>
+                                <td id="preview_balance" class="fw-bold"></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Payment Date</td>
+                                <td id="preview_date"></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Academic Year</td>
+                                <td id="preview_year"></td>
+                            </tr>
+                            <tr id="preview_desc_row">
+                                <td class="fw-bold text-muted">Description</td>
+                                <td id="preview_description"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="alert alert-info mt-3 mb-0 py-2">
+                        <i class="fas fa-envelope me-1"></i> A receipt will be emailed to the student upon confirmation.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-pencil-alt me-1"></i>Edit
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmPaymentBtn">
+                        <i class="fas fa-check-circle me-2"></i>Confirm & Process
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Handle searchable student selection
-        document.getElementById('student_search').addEventListener('input', function(e) {
-            const input = e.target;
-            const list = document.getElementById('student_list');
-            const hiddenInput = document.getElementById('student_id');
-            const options = list.options;
-            const feedback = document.getElementById('selection_feedback');
-            
-            hiddenInput.value = ''; // Reset hidden ID
-            if (feedback) feedback.textContent = '';
-            
-            for (let i = 0; i < options.length; i++) {
-                if (options[i].value === input.value) {
-                    hiddenInput.value = options[i].getAttribute('data-id');
-                    if (feedback) {
-                        feedback.textContent = '✓ Student Selected';
-                        feedback.style.color = 'green';
-                    }
-                    break;
-                }
-            }
-        });
-
-        // Ensure hidden input is cleared if search is cleared
-        document.getElementById('student_search').addEventListener('change', function(e) {
-            const hiddenInput = document.getElementById('student_id');
-            const feedback = document.getElementById('selection_feedback');
-            if (e.target.value === '') {
-                hiddenInput.value = '';
+        const studentSearchEl = document.getElementById('student_search');
+        if (studentSearchEl) {
+            studentSearchEl.addEventListener('input', function(e) {
+                const input = e.target;
+                const list = document.getElementById('student_list');
+                const hiddenInput = document.getElementById('student_id');
+                const options = list.options;
+                const feedback = document.getElementById('selection_feedback');
+                
+                hiddenInput.value = ''; // Reset hidden ID
                 if (feedback) feedback.textContent = '';
-            }
-        });
+                
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === input.value) {
+                        hiddenInput.value = options[i].getAttribute('data-id');
+                        if (feedback) {
+                            feedback.textContent = '✓ Student Selected';
+                            feedback.style.color = 'green';
+                        }
+                        break;
+                    }
+                }
+            });
+
+            // Ensure hidden input is cleared if search is cleared
+            studentSearchEl.addEventListener('change', function(e) {
+                const hiddenInput = document.getElementById('student_id');
+                const feedback = document.getElementById('selection_feedback');
+                if (e.target.value === '') {
+                    hiddenInput.value = '';
+                    if (feedback) feedback.textContent = '';
+                }
+            });
+        }
 
         // Auto-fill amount when due is selected
-        document.getElementById('due_id').addEventListener('change', function(e) {
-            const selectedOption = e.target.options[e.target.selectedIndex];
-            const amountInput = document.getElementById('amount');
-            if (selectedOption && selectedOption.dataset.amount) {
-                amountInput.value = selectedOption.dataset.amount;
-            }
-        });
+        const dueSelectEl = document.getElementById('due_id');
+        if (dueSelectEl) {
+            dueSelectEl.addEventListener('change', function(e) {
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                const amountInput = document.getElementById('amount');
+                if (selectedOption && selectedOption.dataset.amount) {
+                    amountInput.value = selectedOption.dataset.amount;
+                }
+            });
+        }
+
+        // Payment Preview Modal Logic
+        const previewBtn = document.getElementById('previewPaymentBtn');
+        if (previewBtn) {
+            previewBtn.addEventListener('click', function() {
+                const form = this.closest('form');
+                const studentId = document.getElementById('student_id').value;
+                const studentText = document.getElementById('student_search').value;
+                const dueSelect = document.getElementById('due_id');
+                const dueOption = dueSelect.options[dueSelect.selectedIndex];
+                const amount = parseFloat(document.getElementById('amount').value) || 0;
+                const paymentDate = document.getElementById('payment_date').value;
+                const academicYear = document.getElementById('academic_year').value;
+                const description = document.getElementById('description').value;
+
+                // Validate form first
+                if (!studentId) {
+                    alert('Please select a student.');
+                    document.getElementById('student_search').focus();
+                    return;
+                }
+                if (!dueOption || !dueOption.value) {
+                    alert('Please select a due category.');
+                    dueSelect.focus();
+                    return;
+                }
+                if (amount <= 0) {
+                    alert('Please enter a valid payment amount.');
+                    document.getElementById('amount').focus();
+                    return;
+                }
+                if (!paymentDate) {
+                    alert('Please enter a payment date.');
+                    return;
+                }
+                if (!academicYear) {
+                    alert('Please enter the academic year.');
+                    return;
+                }
+
+                // Populate preview modal
+                const totalDue = parseFloat(dueOption.dataset.amount) || 0;
+                const balance = totalDue - amount;
+
+                document.getElementById('preview_student').textContent = studentText;
+                document.getElementById('preview_due').textContent = dueOption.textContent.trim();
+                document.getElementById('preview_total_due').textContent = 'GH₵ ' + totalDue.toFixed(2);
+                document.getElementById('preview_amount').textContent = 'GH₵ ' + amount.toFixed(2);
+                
+                const balanceEl = document.getElementById('preview_balance');
+                balanceEl.textContent = 'GH₵ ' + balance.toFixed(2);
+                balanceEl.className = balance > 0 ? 'fw-bold text-danger' : 'fw-bold text-success';
+                
+                document.getElementById('preview_date').textContent = paymentDate;
+                document.getElementById('preview_year').textContent = academicYear;
+                
+                const descRow = document.getElementById('preview_desc_row');
+                if (description) {
+                    document.getElementById('preview_description').textContent = description;
+                    descRow.style.display = '';
+                } else {
+                    descRow.style.display = 'none';
+                }
+
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('paymentPreviewModal'));
+                modal.show();
+            });
+
+            // Confirm button submits the form
+            document.getElementById('confirmPaymentBtn').addEventListener('click', function() {
+                const form = document.querySelector('form[action=""] input[name="action"][value="make_payment"]')?.closest('form') 
+                             || document.querySelector('form');
+                form.submit();
+            });
+        }
     </script>
 </body>
 </html>

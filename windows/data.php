@@ -227,13 +227,49 @@ function handleCSVImport() {
             }
             
             // 2. Handle Student Data
-            // Check if student already exists
-            $stmt = $pdo->prepare("SELECT student_id FROM students WHERE index_no = ?");
+            // Check for existing student (including soft-deleted)
+            $stmt = $pdo->prepare("SELECT student_id, user_id, deleted_at FROM students WHERE index_no = ?");
             $stmt->execute([$index_no]);
-            if ($stmt->fetch()) {
-                // Update existing student or log error
-                // For now, let's skip if exists as per original logic but we might want to update
-                //$errors[] = "Student with Index No $index_no already exists";
+            $existing_student = $stmt->fetch();
+            
+            if ($existing_student) {
+                $student_id = $existing_student['student_id'];
+                $s_user_id = $existing_student['user_id'];
+                
+                // Get or create programme
+                $stmt = $pdo->prepare("SELECT programme_id FROM programmes WHERE programme_name = ? OR programme_code = ?");
+                $stmt->execute([$programme_name, $programme_name]);
+                $programme_data = $stmt->fetch();
+                
+                if (!$programme_data) {
+                    $code = strtoupper(str_replace(' ', '-', $programme_name));
+                    $type = 'BTech';
+                    if (stripos($programme_name, 'HND') !== false) $type = 'HND';
+                    
+                    $stmt = $pdo->prepare("INSERT INTO programmes (programme_code, programme_name, programme_type) VALUES (?, ?, ?)");
+                    $stmt->execute([$code, $programme_name, $type]);
+                    $programme_id = $pdo->lastInsertId();
+                } else {
+                    $programme_id = $programme_data['programme_id'];
+                }
+                
+                if (!isset($fn)) {
+                    $name_parts = explode(',', $name);
+                    $ln = trim($name_parts[0] ?? '');
+                    $fn = trim($name_parts[1] ?? '');
+                }
+                
+                // Update and restore student record
+                $stmt = $pdo->prepare("UPDATE students SET first_name = ?, last_name = ?, email = ?, phone = ?, programme_id = ?, programme_level = ?, session_type = ?, current_academic_year = ?, position = ?, status = ?, user_id = ?, deleted_at = NULL WHERE student_id = ?");
+                $stmt->execute([$fn, $ln, $email, $phone, $programme_id, $prog_level, $session_type, $academic_year, $position, $status, $user_id, $student_id]);
+                
+                // Ensure the associated user is also restored if necessary
+                if ($user_id) {
+                    $stmt = $pdo->prepare("UPDATE users SET is_active = 1, deleted_at = NULL WHERE user_id = ?");
+                    $stmt->execute([$user_id]);
+                }
+                
+                $imported_count++;
             } else {
                 // Get or create programme
                 $stmt = $pdo->prepare("SELECT programme_id FROM programmes WHERE programme_name = ? OR programme_code = ?");
@@ -373,25 +409,86 @@ function handleAddStudent() {
     
     try {
         $pdo = getDBConnection();
+        $pdo->beginTransaction();
         
-        // Check if student already exists
-        $stmt = $pdo->prepare("SELECT student_id FROM students WHERE (index_no = ? OR email = ?) AND deleted_at IS NULL");
+        // 1. Check for existing student (including soft-deleted)
+        $stmt = $pdo->prepare("SELECT student_id, user_id, deleted_at FROM students WHERE index_no = ? OR email = ?");
         $stmt->execute([$index_no, $email]);
-        if ($stmt->fetch()) {
-            $error_message = 'Student with this Index No or Email already exists.';
+        $existing_student = $stmt->fetch();
+        
+        if ($existing_student) {
+            if ($existing_student['deleted_at'] === null) {
+                $error_message = 'An active student with this Index No or Email already exists.';
+                $pdo->rollBack();
+                return;
+            }
+            
+            // Restore soft-deleted student
+            $student_id = $existing_student['student_id'];
+            $user_id = $existing_student['user_id'];
+            
+            // Update and restore student
+            $stmt = $pdo->prepare("UPDATE students SET first_name = ?, last_name = ?, email = ?, phone = ?, programme_id = ?, programme_level = ?, session_type = ?, current_academic_year = ?, deleted_at = NULL WHERE student_id = ?");
+            $stmt->execute([$first_name, $last_name, $email, $phone, $programme_id, $prog_level, $session_type, $academic_year, $student_id]);
+            
+            // Reactivate/Restore user account if it exists
+            if ($user_id) {
+                $stmt = $pdo->prepare("UPDATE users SET is_active = 1, deleted_at = NULL WHERE user_id = ?");
+                $stmt->execute([$user_id]);
+            }
+            
+            logActivity('RESTORE_STUDENT', 'students', $student_id, null, ['index_no' => $index_no, 'name' => "$first_name $last_name"]);
+            $pdo->commit();
+            $success_message = 'Student record restored and updated successfully!';
             return;
         }
+
+        // 2. Handle New User Account Creation (if no student record existed)
+        $user_id = null;
+        $stmt = $pdo->prepare("SELECT user_id, deleted_at FROM users WHERE username = ? OR email = ?");
+        $stmt->execute([$index_no, $email]);
+        $existing_user = $stmt->fetch();
         
-        // Insert new student
-        $stmt = $pdo->prepare("INSERT INTO students (index_no, first_name, last_name, email, phone, programme_id, programme_level, session_type, current_academic_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$index_no, $first_name, $last_name, $email, $phone, $programme_id, $prog_level, $session_type, $academic_year]);
+        if (!$existing_user) {
+            // Get role_id for student
+            $role_stmt = $pdo->prepare("SELECT role_id FROM roles WHERE role_name = 'student'");
+            $role_stmt->execute();
+            $role_data = $role_stmt->fetch();
+            $role_id = $role_data ? $role_data['role_id'] : null;
+            
+            if (!$role_id) {
+                throw new Exception("Critical error: 'student' role not found in database.");
+            }
+            
+            // Password logic: Index No WITHOUT leading zero
+            $default_password = ltrim($index_no, '0');
+            $hashed_password = password_hash($default_password, PASSWORD_DEFAULT);
+            
+            // Create user (username is Index No)
+            $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, email, phone, first_name, last_name, role_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)");
+            $stmt->execute([$index_no, $hashed_password, $email, $phone, $first_name, $last_name, $role_id]);
+            $user_id = $pdo->lastInsertId();
+        } else {
+            // Re-activate if deleted
+            $user_id = $existing_user['user_id'];
+            if ($existing_user['deleted_at'] !== null) {
+                $stmt = $pdo->prepare("UPDATE users SET is_active = 1, deleted_at = NULL WHERE user_id = ?");
+                $stmt->execute([$user_id]);
+            }
+        }
+        
+        // 3. Insert new student linked to user
+        $stmt = $pdo->prepare("INSERT INTO students (index_no, first_name, last_name, email, phone, programme_id, programme_level, session_type, current_academic_year, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$index_no, $first_name, $last_name, $email, $phone, $programme_id, $prog_level, $session_type, $academic_year, $user_id]);
         
         $new_student_id = $pdo->lastInsertId();
         logActivity('ADD_STUDENT', 'students', $new_student_id, null, ['index_no' => $index_no, 'name' => "$first_name $last_name"]);
         
-        $success_message = 'Student added successfully!';
+        $pdo->commit();
+        $success_message = 'Student and user account added successfully!';
         
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
         $error_message = 'Failed to add student: ' . $e->getMessage();
     }
 }

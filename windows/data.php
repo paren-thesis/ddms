@@ -107,7 +107,7 @@ function handleCSVImport() {
             
             // Map CSV data based on header: 
             // Name,Index No,Program Level,Session,Programme Of Study,Password,Phone,Academic Year,Dues payed,Recept No,Payment Date,Position ,Status,Email
-            $name = sanitizeInput($data[0] ?? '');
+            $name = sanitizeInput(str_replace('.', '', $data[0] ?? ''));
             $index_no = sanitizeInput($data[1] ?? '');
             
             // Auto-restore leading zero for Index No (handling Excel's auto-format)

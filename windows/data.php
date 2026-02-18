@@ -86,18 +86,6 @@ function handleCSVImport() {
             return;
         }
 
-        // Enable auto-detection of line endings (\r, \n, \r\n)
-        $prev_line_ending = ini_get('auto_detect_line_endings');
-        ini_set('auto_detect_line_endings', true);
-        
-        // Re-open file with line ending detection enabled
-        fclose($handle);
-        $handle = fopen($file['tmp_name'], 'r');
-        if (!$handle) {
-            $error_message = 'Unable to re-read the CSV file.';
-            return;
-        }
-
         // 0. Verify current session user exists (in case of DB reset/wipe)
         $session_user_id = $_SESSION['user_id'];
         $stmt = $pdo->prepare("SELECT user_id FROM users WHERE user_id = ? AND deleted_at IS NULL");
@@ -345,7 +333,6 @@ function handleCSVImport() {
         }
         
         fclose($handle);
-        ini_set('auto_detect_line_endings', $prev_line_ending);
         $pdo->commit();
         
         if ($imported_count > 0) {

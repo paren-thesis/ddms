@@ -342,7 +342,7 @@ try {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Code * (Unique ID)</label>
-                            <input type="text" name="due_code" class="form-control" placeholder="e.g. COMPSSA-2025" required>
+                            <input type="text" name="due_code" class="form-control" placeholder="e.g. COMPSSA-2025/2026" required>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">

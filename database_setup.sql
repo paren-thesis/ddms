@@ -179,12 +179,11 @@ INSERT INTO programmes (programme_code, programme_name) VALUES
 ('HND-ICT', 'HND Information and Communication Technology');
 
 INSERT INTO academic_sessions (session_name, is_current) VALUES
-('2023-2024', FALSE),
-('2024-2025', TRUE);
+('2023/2024', FALSE),
+('2024/2025', TRUE);
 
 INSERT INTO dues (due_name, due_code, amount, academic_year) VALUES
-('Departmental Dues', 'DEPT-2024-2025', 150.00, '2024-2025'),
-('Laboratory Fee', 'LAB-2024-2025', 50.00, '2024-2025');
+('Departmental Dues', 'DEPT-2024/2025', 150.00, '2024/2025');
 
 INSERT INTO configurations (config_key, config_value, description) VALUES
 ('system_name', 'HTU COMPSSA Dues Management System', 'Name of the application'),

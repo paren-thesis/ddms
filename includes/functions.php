@@ -119,8 +119,8 @@ function getCurrentAcademicYear() {
     }
 
     $currentYear = date('Y');
-    $nextYear = $currentYear + 1;
-    $currentYearResult = "$currentYear-$nextYear";
+    $previousYear = $currentYear - 1;
+    $currentYearResult = "$previousYear/$currentYear";
     return $currentYearResult;
 }
 

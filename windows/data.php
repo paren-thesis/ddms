@@ -133,7 +133,9 @@ function handleCSVImport() {
                 $phone = '0' . $phone;
             }
 
-            $academic_year = sanitizeInput($data[7] ?? '');
+            $raw_academic_year = sanitizeInput($data[7] ?? '');
+            $academic_year = !empty($raw_academic_year) ? str_replace('-', '/', $raw_academic_year) : getCurrentAcademicYear();
+
             $dues_paid = (float)sanitizeInput($data[8] ?? '0');
             $receipt_no = sanitizeInput($data[9] ?? '');
             $payment_date_raw = sanitizeInput($data[10] ?? '');

@@ -227,7 +227,7 @@ try {
                                     <form method="POST" class="mb-3">
                                         <input type="hidden" name="action" value="add_session">
                                         <div class="input-group">
-                                            <input type="text" name="session_name" class="form-control" placeholder="e.g. 2025-2026" required>
+                                            <input type="text" name="session_name" class="form-control" placeholder="e.g. 2025/2026" required>
                                             <button type="submit" class="btn btn-primary">Add Session</button>
                                         </div>
                                     </form>

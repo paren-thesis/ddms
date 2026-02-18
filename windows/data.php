@@ -142,17 +142,12 @@ function handleCSVImport() {
             // Name,Index No,Program Level,Session,Programme Of Study,Password,Phone,Academic Year,Dues payed,Recept No,Payment Date,Position ,Status,Email
             $raw_name = $data[0] ?? '';
             $name = sanitizeInput(str_replace('.', '', $raw_name));
-            if ($raw_name !== $name) {
-                $row_corrections[] = "Removed periods from name: '$raw_name' -> '$name'";
-            }
             
             $index_no = sanitizeInput($data[1] ?? '');
             
             // Auto-restore leading zero for Index No (handling Excel's auto-format)
             if (is_numeric($index_no) && strlen($index_no) >= 5 && strlen($index_no) <= 9 && $index_no[0] !== '0') {
-                $old_index = $index_no;
                 $index_no = '0' . $index_no;
-                $row_corrections[] = "Restored leading zero to Index No: '$old_index' -> '$index_no'";
             }
 
             $raw_prog_level = sanitizeInput($data[2] ?? '');
@@ -170,9 +165,7 @@ function handleCSVImport() {
 
             // Auto-restore leading zero for Phone (handling Excel's auto-format)
             if (is_numeric($phone) && strlen($phone) === 9 && $phone[0] !== '0') {
-                $old_phone = $phone;
                 $phone = '0' . $phone;
-                $row_corrections[] = "Restored leading zero to Phone: '$old_phone' -> '$phone'";
             }
 
             $raw_academic_year = sanitizeInput($data[7] ?? '');
@@ -181,9 +174,6 @@ function handleCSVImport() {
                 $row_corrections[] = "No academic year provided, defaulted to: '$academic_year'";
             } else {
                 $academic_year = str_replace('-', '/', $raw_academic_year);
-                if ($raw_academic_year !== $academic_year) {
-                    $row_corrections[] = "Standardized academic year: '$raw_academic_year' -> '$academic_year'";
-                }
             }
 
             $dues_paid = (float)sanitizeInput($data[8] ?? '0');

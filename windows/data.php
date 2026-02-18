@@ -97,22 +97,62 @@ function handleCSVImport() {
         // Skip header row
         $header = fgetcsv($handle);
         $imported_count = 0;
+        $updated_count = 0;
         $errors = [];
         
+        // Detailed log structure
+        $import_log = [
+            'metadata' => [
+                'timestamp' => date('Y-m-d H:i:s'),
+                'filename' => $filename,
+                'user_id' => $session_user_id,
+                'summary' => [
+                    'total_rows' => 0,
+                    'success' => 0,
+                    'updated' => 0,
+                    'errors' => 0
+                ]
+            ],
+            'results' => []
+        ];
+        
+        $row_num = 1; // Content starts after header (which is row 0)
         while (($data = fgetcsv($handle)) !== false) {
+            $row_num++;
+            $import_log['metadata']['summary']['total_rows']++;
+            
+            $row_status = 'success';
+            $row_message = 'New student imported successfully';
+            $row_corrections = [];
+
             if (count($data) < 13) {
-                $errors[] = "Row has insufficient data (expected at least 13 columns)";
+                $msg = "Row $row_num: Insufficient data (expected at least 13 columns)";
+                $errors[] = $msg;
+                $import_log['results'][] = [
+                    'row' => $row_num,
+                    'index_no' => 'N/A',
+                    'status' => 'error',
+                    'message' => $msg
+                ];
+                $import_log['metadata']['summary']['errors']++;
                 continue;
             }
             
             // Map CSV data based on header: 
             // Name,Index No,Program Level,Session,Programme Of Study,Password,Phone,Academic Year,Dues payed,Recept No,Payment Date,Position ,Status,Email
-            $name = sanitizeInput(str_replace('.', '', $data[0] ?? ''));
+            $raw_name = $data[0] ?? '';
+            $name = sanitizeInput(str_replace('.', '', $raw_name));
+            if ($raw_name !== $name) {
+                $row_corrections[] = "Removed periods from name: '$raw_name' -> '$name'";
+            }
+            
             $index_no = sanitizeInput($data[1] ?? '');
             
             // Auto-restore leading zero for Index No (handling Excel's auto-format)
             if (is_numeric($index_no) && strlen($index_no) >= 5 && strlen($index_no) <= 9 && $index_no[0] !== '0') {
+                $old_index = $index_no;
                 $index_no = '0' . $index_no;
+                $row_corrections[] = "Restored leading zero to Index No: '$old_index' -> '$index_no'";
             }
 
             $raw_prog_level = sanitizeInput($data[2] ?? '');
@@ -130,11 +170,21 @@ function handleCSVImport() {
 
             // Auto-restore leading zero for Phone (handling Excel's auto-format)
             if (is_numeric($phone) && strlen($phone) === 9 && $phone[0] !== '0') {
+                $old_phone = $phone;
                 $phone = '0' . $phone;
+                $row_corrections[] = "Restored leading zero to Phone: '$old_phone' -> '$phone'";
             }
 
             $raw_academic_year = sanitizeInput($data[7] ?? '');
-            $academic_year = !empty($raw_academic_year) ? str_replace('-', '/', $raw_academic_year) : getCurrentAcademicYear();
+            if (empty($raw_academic_year)) {
+                $academic_year = getCurrentAcademicYear();
+                $row_corrections[] = "No academic year provided, defaulted to: '$academic_year'";
+            } else {
+                $academic_year = str_replace('-', '/', $raw_academic_year);
+                if ($raw_academic_year !== $academic_year) {
+                    $row_corrections[] = "Standardized academic year: '$raw_academic_year' -> '$academic_year'";
+                }
+            }
 
             $dues_paid = (float)sanitizeInput($data[8] ?? '0');
             $receipt_no = sanitizeInput($data[9] ?? '');
@@ -155,27 +205,65 @@ function handleCSVImport() {
             
             // Validate required fields
             if (empty($index_no) || empty($email)) {
-                $errors[] = "Row missing required data: Index No or Email for $name";
+                $msg = "Row missing required data: Index No or Email for $name";
+                $errors[] = $msg;
+                $import_log['results'][] = [
+                    'row' => $row_num,
+                    'index_no' => $index_no ?: 'N/A',
+                    'name' => $name ?: 'N/A',
+                    'status' => 'error',
+                    'message' => $msg
+                ];
                 continue;
             }
             
             if (!isValidEmail($email)) {
-                $errors[] = "Invalid email format for student $index_no: $email";
+                $msg = "Invalid email format for student $index_no: $email";
+                $errors[] = $msg;
+                $import_log['results'][] = [
+                    'row' => $row_num,
+                    'index_no' => $index_no,
+                    'name' => $name,
+                    'status' => 'error',
+                    'message' => $msg
+                ];
                 continue;
             }
             
             if (!empty($phone) && !isValidPhone($phone)) {
-                $errors[] = "Invalid phone format for student $index_no: $phone";
+                $msg = "Invalid phone format for student $index_no: $phone";
+                $errors[] = $msg;
+                $import_log['results'][] = [
+                    'row' => $row_num,
+                    'index_no' => $index_no,
+                    'name' => $name,
+                    'status' => 'error',
+                    'message' => $msg
+                ];
                 continue;
             }
 
             // Validate name format and content
             $name_parts = explode(',', $name);
+            $invalid_name = false;
             foreach ($name_parts as $part) {
                 if (!isValidName(trim($part))) {
-                    $errors[] = "Invalid name format for student $index_no: $name. Names should only contain letters and basic punctuation.";
-                    continue 2;
+                    $invalid_name = true;
+                    break;
                 }
+            }
+            
+            if ($invalid_name) {
+                $msg = "Invalid name format for student $index_no: $name. Names should only contain letters and basic punctuation.";
+                $errors[] = $msg;
+                $import_log['results'][] = [
+                    'row' => $row_num,
+                    'index_no' => $index_no,
+                    'name' => $name,
+                    'status' => 'error',
+                    'message' => $msg
+                ];
+                continue;
             }
             
             // 1. Handle User Account Creation
@@ -259,7 +347,9 @@ function handleCSVImport() {
                     $stmt->execute([$user_id]);
                 }
                 
-                $imported_count++;
+                $updated_count++;
+                $row_status = 'warning';
+                $row_message = "Existing student record updated";
             } else {
                 // Get or create programme
                 $stmt = $pdo->prepare("SELECT programme_id FROM programmes WHERE programme_name = ? OR programme_code = ?");
@@ -327,6 +417,15 @@ function handleCSVImport() {
                     }
                 }
                 
+                $import_log['results'][] = [
+                    'row' => $row_num,
+                    'index_no' => $index_no,
+                    'name' => $name,
+                    'status' => $row_status,
+                    'message' => $row_message,
+                    'corrections' => $row_corrections
+                ];
+                
                 $imported_count++;
             }
             // Reset name parts for next iteration
@@ -337,14 +436,27 @@ function handleCSVImport() {
         fclose($handle);
         $pdo->commit();
         
-        if ($imported_count > 0) {
-            $success_message = "Successfully imported $imported_count students.";
+        // Finalize Import Log
+        $import_log['metadata']['summary']['success'] = $imported_count;
+        $import_log['metadata']['summary']['updated'] = $updated_count;
+        $import_log['metadata']['summary']['errors'] = count($errors);
+        
+        $log_filename = 'import_' . time() . '_' . $session_user_id . '.json';
+        $log_path = '../logs/imports/' . $log_filename;
+        file_put_contents($log_path, json_encode($import_log, JSON_PRETTY_PRINT));
+        
+        if ($imported_count > 0 || $updated_count > 0) {
+            $success_message = "Import complete: $imported_count new, $updated_count updated.";
             if (!empty($errors)) {
-                $success_message .= " Some errors occurred: " . implode(', ', array_slice($errors, 0, 5));
+                $success_message .= " (" . count($errors) . " errors found)";
             }
-            logActivity('CSV_IMPORT', 'students', null, null, ['count' => $imported_count, 'filename' => $filename]);
+            $success_message .= ' <a href="import_details.php?log=' . $log_filename . '" class="btn btn-sm btn-info ms-2"><i class="fas fa-list me-1"></i>View Details</a>';
+            logActivity('CSV_IMPORT', 'students', null, null, ['new' => $imported_count, 'updated' => $updated_count, 'filename' => $filename]);
         } else {
-            $error_message = "No new students were imported. " . implode(', ', array_slice($errors, 0, 5));
+            $error_message = "No students were imported or updated. " . (count($errors) > 0 ? count($errors) . " errors occurred." : "");
+            if (count($errors) > 0) {
+                 $error_message .= ' <a href="import_details.php?log=' . $log_filename . '" class="btn btn-sm btn-info ms-2"><i class="fas fa-list me-1"></i>View Error Details</a>';
+            }
         }
         
     } catch (Exception $e) {

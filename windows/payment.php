@@ -450,6 +450,8 @@ if ($_SESSION['user_role'] === 'student') {
                         </div>
                         <div class="card-body">
                             <!-- Search & Filter Bar -->
+                            <!-- Search & Filter Bar - Hidden for Students -->
+                            <?php if ($_SESSION['user_role'] !== 'student'): ?>
                             <form method="GET" class="mb-4">
                                 <div class="row g-3">
                                     <div class="col-md-5">
@@ -491,13 +493,16 @@ if ($_SESSION['user_role'] === 'student') {
                                     </div>
                                 </div>
                             </form>
+                            <?php endif; ?>
 
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
                                             <th>Receipt No</th>
+                                            <?php if ($_SESSION['user_role'] !== 'student'): ?>
                                             <th>Student</th>
+                                            <?php endif; ?>
                                             <th>Category</th>
                                             <th>Paid (GHC)</th>
                                             <th>Balance (GHC)</th>
@@ -518,7 +523,9 @@ if ($_SESSION['user_role'] === 'student') {
                                                     <td>
                                                         <span class="badge bg-dark"><?php echo sanitizeInput($payment['receipt_no']); ?></span>
                                                     </td>
+                                                    <?php if ($_SESSION['user_role'] !== 'student'): ?>
                                                     <td><?php echo sanitizeInput($payment['index_no'] . ' - ' . $payment['first_name'] . ' ' . $payment['last_name']); ?></td>
+                                                    <?php endif; ?>
                                                     <td><?php echo sanitizeInput($payment['due_name'] ?? 'N/A'); ?></td>
                                                     <td class="fw-bold text-success"><?php echo formatCurrency($payment['amount_paid']); ?></td>
                                                     <td class="text-danger"><?php echo formatCurrency($payment['balance']); ?></td>
@@ -526,14 +533,11 @@ if ($_SESSION['user_role'] === 'student') {
                                                     <td><?php echo sanitizeInput($payment['academic_year']); ?></td>
                                                     <td><?php echo sanitizeInput($payment['lecturer']); ?></td>
                                                     <td>
-                                                        <?php if ($_SESSION['user_role'] !== 'student'): ?>
                                                         <a href="generate_receipt.php?id=<?php echo $payment['payment_id']; ?>" 
-                                                           target="_blank" class="btn btn-sm btn-outline-primary">
-                                                            <i class="fas fa-print"></i>
+                                                           target="_blank" class="btn btn-sm <?php echo $_SESSION['user_role'] === 'student' ? 'btn-primary' : 'btn-outline-primary'; ?>"
+                                                           title="Print Receipt">
+                                                            <i class="fas fa-print me-1"></i> <?php echo $_SESSION['user_role'] === 'student' ? 'Receipt' : ''; ?>
                                                         </a>
-                                                        <?php else: ?>
-                                                        <span class="text-muted">-</span>
-                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>

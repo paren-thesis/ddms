@@ -676,10 +676,11 @@ function handleUpdateProfile() {
     
     $student_id = sanitizeInput($_POST['student_id'] ?? '');
     $phone = sanitizeInput($_POST['phone'] ?? '');
+    $password = $_POST['new_password'] ?? '';
     $user_id = $_SESSION['user_id'];
     
-    if (empty($student_id) || empty($phone)) {
-        $error_message = 'Phone number cannot be empty.';
+    if (empty($student_id)) {
+        $error_message = 'Invalid request.';
         return;
     }
     
@@ -701,11 +702,32 @@ function handleUpdateProfile() {
             return;
         }
         
-        // Update phone
-        $stmt = $pdo->prepare("UPDATE students SET phone = ? WHERE student_id = ? AND user_id = ?");
-        $stmt->execute([$phone, $student_id, $user_id]);
+        // Update phone if provided
+        if (!empty($phone)) {
+            if (!isValidPhone($phone)) {
+                $error_message = 'Invalid phone number format.';
+                return;
+            }
+            $stmt = $pdo->prepare("UPDATE students SET phone = ? WHERE student_id = ? AND user_id = ?");
+            $stmt->execute([$phone, $student_id, $user_id]);
+            
+            // Also update phone in users table
+            $stmt = $pdo->prepare("UPDATE users SET phone = ? WHERE user_id = ?");
+            $stmt->execute([$phone, $user_id]);
+        }
         
-        logActivity('PROFILE_UPDATE', 'students', $student_id, ['phone' => $old_data['phone']], ['phone' => $phone]);
+        // Update password if provided
+        if (!empty($password)) {
+            if (strlen($password) < 6) {
+                $error_message = 'Password must be at least 6 characters long.';
+                return;
+            }
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?");
+            $stmt->execute([$hashed, $user_id]);
+        }
+        
+        logActivity('PROFILE_UPDATE', 'students', $student_id);
         
         $success_message = 'Contact information updated successfully!';
         
@@ -848,7 +870,7 @@ try {
             <div class="row">
                 <div class="col-12">
                     <h2 class="text-center mb-4" style="color: var(--blue); font-size: 28px; font-weight: bold;">
-                        Student Data Management
+                        <?php echo $_SESSION['user_role'] === 'student' ? 'My Academic Record' : 'Student Data Management'; ?>
                     </h2>
                     
                     <!-- Display Messages -->
@@ -883,37 +905,6 @@ try {
                                                 <i class="fas fa-upload me-2"></i>Import CSV
                                             </button>
                                         </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <?php else: ?>
-                    <!-- Student View & Profile Profile -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i>My Profile Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>Personal View:</strong> You are viewing your official student record. Only you and department officials can see this data.
-                            </div>
-                            
-                            <!-- Phone Number Update Form -->
-                            <form method="POST" class="mt-3">
-                                <input type="hidden" name="action" value="update_profile">
-                                <input type="hidden" name="student_id" value="<?php echo $students[0]['student_id'] ?? ''; ?>">
-                                <div class="row align-items-end">
-                                    <div class="col-md-6">
-                                        <label for="new_phone" class="form-label">Update Phone Number</label>
-                                        <input type="text" class="form-control" id="new_phone" name="phone" 
-                                               value="<?php echo sanitizeInput($students[0]['phone'] ?? ''); ?>" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save me-2"></i>Update Contact Info
-                                        </button>
                                     </div>
                                 </div>
                             </form>
@@ -1017,9 +1008,110 @@ try {
                         </div>
                     </div>
                     <?php endif; ?>
-                    
-                    <!-- Search and Filter Section - Hidden for Students -->
-                    <?php if ($_SESSION['user_role'] !== 'student'): ?>
+                    <!-- Student View: Profile Card -->
+                    <?php if ($_SESSION['user_role'] === 'student'): ?>
+                        <?php 
+                        // Fetch the logged-in student's data
+                        try {
+                            $stmt = $pdo->prepare("SELECT s.*, p.programme_name 
+                                                 FROM students s 
+                                                 JOIN programmes p ON s.programme_id = p.programme_id 
+                                                 WHERE s.user_id = ? AND s.deleted_at IS NULL");
+                            $stmt->execute([$_SESSION['user_id']]);
+                            $my_data = $stmt->fetch();
+                        } catch (PDOException $e) { $my_data = null; }
+                        ?>
+                        
+                        <?php if ($my_data): ?>
+                        <div class="row justify-content-center">
+                            <div class="col-md-10 col-lg-8">
+                                <div class="card border-0 shadow-sm overflow-hidden mb-4">
+                                    <div class="card-header bg-primary text-white py-3">
+                                        <h5 class="mb-0 text-center"><i class="fas fa-id-card me-2"></i>My Student Profile</h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <!-- Header Section -->
+                                        <div class="text-center py-4 bg-light border-bottom">
+                                            <div class="mb-3">
+                                                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 100px; height: 100px;">
+                                                    <i class="fas fa-user-graduate fa-4x"></i>
+                                                </div>
+                                            </div>
+                                            <h3 class="fw-bold mb-1"><?php echo sanitizeInput($my_data['first_name'] . ' ' . $my_data['last_name']); ?></h3>
+                                            <span class="badge bg-primary px-3 py-2 fs-6"><?php echo sanitizeInput($my_data['index_no']); ?></span>
+                                        </div>
+                                        
+                                        <!-- Details Grid -->
+                                        <div class="row g-0">
+                                            <!-- Academic Column -->
+                                            <div class="col-md-6 border-end">
+                                                <div class="p-4">
+                                                    <h6 class="text-muted text-uppercase small fw-bold mb-3"><i class="fas fa-graduation-cap me-2"></i>Academic Details</h6>
+                                                    <div class="mb-3">
+                                                        <label class="text-muted d-block small">Programme</label>
+                                                        <span class="fw-bold fs-6 text-primary"><?php echo sanitizeInput($my_data['programme_name']); ?></span>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-6 mb-3">
+                                                            <label class="text-muted d-block small">Level</label>
+                                                            <span class="fw-bold"><?php echo sanitizeInput($my_data['programme_level']); ?></span>
+                                                        </div>
+                                                        <div class="col-6 mb-3">
+                                                            <label class="text-muted d-block small">Session</label>
+                                                            <span class="fw-bold"><?php echo sanitizeInput($my_data['session_type']); ?></span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-muted d-block small">Academic Year</label>
+                                                        <span class="fw-bold"><?php echo sanitizeInput($my_data['current_academic_year']); ?></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Contact Column -->
+                                            <div class="col-md-6">
+                                                <div class="p-4">
+                                                    <h6 class="text-muted text-uppercase small fw-bold mb-3"><i class="fas fa-address-book me-2"></i>Contact Information</h6>
+                                                    <div class="mb-3">
+                                                        <label class="text-muted d-block small">Email Address</label>
+                                                        <span class="fw-bold"><?php echo sanitizeInput($my_data['email']); ?></span>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="text-muted d-block small">Phone Number</label>
+                                                        <span class="fw-bold"><?php echo sanitizeInput($my_data['phone'] ?: 'N/A'); ?></span>
+                                                    </div>
+                                                    <hr class="my-3">
+                                                    <div class="text-center">
+                                                        <button class="btn btn-outline-primary btn-sm w-100" onclick="editStudent(
+                                                            <?php echo (int)$my_data['student_id']; ?>,
+                                                            '<?php echo addslashes($my_data['index_no']); ?>',
+                                                            '<?php echo addslashes($my_data['first_name']); ?>',
+                                                            '<?php echo addslashes($my_data['last_name']); ?>',
+                                                            '<?php echo addslashes($my_data['email']); ?>',
+                                                            '<?php echo addslashes($my_data['phone']); ?>',
+                                                            '<?php echo addslashes($my_data['current_academic_year']); ?>',
+                                                            '<?php echo addslashes($my_data['programme_id']); ?>',
+                                                            '<?php echo addslashes($my_data['programme_level']); ?>',
+                                                            '<?php echo addslashes($my_data['session_type']); ?>'
+                                                        )">
+                                                            <i class="fas fa-address-book me-2"></i>Update Contact
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-white py-3 text-center">
+                                        <small class="text-muted italic">Account status: <strong><?php echo strtoupper($my_data['status']); ?></strong></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-warning text-center">Your student record could not be found. Please contact the administrator.</div>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                    <!-- Admin View: Search & Filter -->
                     <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search & Filter</h5>
@@ -1097,7 +1189,6 @@ try {
                             </form>
                         </div>
                     </div>
-                    <?php endif; ?>
                     
                     
                     <!-- Students Table -->
@@ -1213,40 +1304,57 @@ try {
                         </ul>
                     </nav>
                     <?php endif; ?>
+                    <?php endif; ?>
 
 
                     <!-- Edit Student Modal -->
                     <div class="modal fade" id="editStudentModal" tabindex="-1">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Edit Student</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title">
+                                        <i class="fas <?php echo $_SESSION['user_role'] === 'student' ? 'fa-address-book' : 'fa-user-edit'; ?> me-2"></i>
+                                        <?php echo $_SESSION['user_role'] === 'student' ? 'Update Contact Information' : 'Edit Student'; ?>
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                 </div>
                                 <form method="POST">
                                     <div class="modal-body">
-                                        <input type="hidden" name="action" value="edit_student">
+                                        <input type="hidden" name="action" value="<?php echo $_SESSION['user_role'] === 'student' ? 'update_profile' : 'edit_student'; ?>">
                                         <input type="hidden" name="student_id" id="edit_student_id">
                                         <div class="mb-3">
                                             <label for="edit_index_no" class="form-label">Index No *</label>
-                                            <input type="text" class="form-control" id="edit_index_no" name="index_no" required>
+                                            <input type="text" class="form-control" id="edit_index_no" name="index_no" required <?php echo $_SESSION['user_role'] === 'student' ? 'readonly disabled' : ''; ?>>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="edit_first_name" class="form-label">First Name *</label>
+                                                    <input type="text" class="form-control" id="edit_first_name" name="first_name" required <?php echo $_SESSION['user_role'] === 'student' ? 'readonly disabled' : ''; ?>>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="edit_last_name" class="form-label">Last Name *</label>
+                                                    <input type="text" class="form-control" id="edit_last_name" name="last_name" required <?php echo $_SESSION['user_role'] === 'student' ? 'readonly disabled' : ''; ?>>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="edit_first_name" class="form-label">First Name *</label>
-                                            <input type="text" class="form-control" id="edit_first_name" name="first_name" required>
+                                            <label for="edit_email" class="form-label">Email Address *</label>
+                                            <input type="email" class="form-control" id="edit_email" name="email" required <?php echo $_SESSION['user_role'] === 'student' ? 'readonly disabled' : ''; ?>>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="edit_last_name" class="form-label">Last Name *</label>
-                                            <input type="text" class="form-control" id="edit_last_name" name="last_name" required>
+                                            <label for="edit_phone" class="form-label">Phone Number</label>
+                                            <input type="text" class="form-control border-primary" id="edit_phone" name="phone">
                                         </div>
+                                        <?php if ($_SESSION['user_role'] === 'student'): ?>
                                         <div class="mb-3">
-                                            <label for="edit_email" class="form-label">Email *</label>
-                                            <input type="email" class="form-control" id="edit_email" name="email" required>
+                                            <label for="edit_password" class="form-label">New Password <small class="text-muted">(Leave blank to keep current)</small></label>
+                                            <input type="password" class="form-control border-primary" id="edit_password" name="new_password" placeholder="Min 6 characters">
                                         </div>
-                                        <div class="mb-3">
-                                            <label for="edit_phone" class="form-label">Phone</label>
-                                            <input type="text" class="form-control" id="edit_phone" name="phone">
-                                        </div>
+                                        <?php endif; ?>
+                                        <?php if ($_SESSION['user_role'] !== 'student'): ?>
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="mb-3">
@@ -1285,10 +1393,13 @@ try {
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-primary">Update Student</button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <?php echo $_SESSION['user_role'] === 'student' ? 'Save Changes' : 'Update Student'; ?>
+                                        </button>
                                     </div>
                                 </form>
                             </div>
@@ -1308,16 +1419,25 @@ try {
         function editStudent(studentId, indexNo, firstName, lastName, email, phone, academicYear, programmeId, level, session) {
             console.log('Editing student:', {studentId, indexNo, firstName, lastName, email, phone, academicYear, programmeId, level, session});
             
-            document.getElementById('edit_student_id').value = studentId;
-            document.getElementById('edit_index_no').value = indexNo;
-            document.getElementById('edit_first_name').value = firstName;
-            document.getElementById('edit_last_name').value = lastName;
-            document.getElementById('edit_email').value = email;
-            document.getElementById('edit_phone').value = phone;
-            document.getElementById('edit_current_academic_year').value = academicYear;
-            document.getElementById('edit_programme_id').value = programmeId;
-            document.getElementById('edit_programme_level').value = level;
-            document.getElementById('edit_session_type').value = session;
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val !== null ? val : '';
+            };
+
+            setVal('edit_student_id', studentId);
+            setVal('edit_index_no', indexNo);
+            setVal('edit_first_name', firstName);
+            setVal('edit_last_name', lastName);
+            setVal('edit_email', email);
+            setVal('edit_phone', phone);
+            setVal('edit_current_academic_year', academicYear);
+            setVal('edit_programme_id', programmeId);
+            setVal('edit_programme_level', level);
+            setVal('edit_session_type', session);
+            
+            // Clear password field if it exists
+            const passEl = document.getElementById('edit_password');
+            if (passEl) passEl.value = '';
             
             const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
             modal.show();

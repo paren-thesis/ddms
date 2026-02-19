@@ -121,6 +121,30 @@ try {
     $avg_dues_per_student = $stmt->fetchColumn() ?: 0;
     $total_expected = $avg_dues_per_student * $total_students;
     
+    // Student-specific Summary Data
+    $student_summary = ['total_paid' => 0, 'outstanding' => 0];
+    if ($_SESSION['user_role'] === 'student') {
+        // Fetch student_id
+        $stmt = $pdo->prepare("SELECT student_id FROM students WHERE user_id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $student_id = $stmt->fetchColumn();
+        
+        if ($student_id) {
+            // Calculate total paid across all time
+            $stmt = $pdo->prepare("SELECT SUM(amount_paid) FROM payments WHERE student_id = ?");
+            $stmt->execute([$student_id]);
+            $student_summary['total_paid'] = $stmt->fetchColumn() ?: 0;
+            
+            // Calculate outstanding (total mandatory dues for all sessions they've been in - total paid)
+            $stmt = $pdo->prepare("SELECT SUM(d.amount) 
+                                 FROM dues d 
+                                 JOIN student_sessions ss ON d.academic_year = ss.academic_year 
+                                 WHERE ss.student_id = ? AND d.is_mandatory = 1");
+            $stmt->execute([$student_id]);
+            $total_due = $stmt->fetchColumn() ?: 0;
+            $student_summary['outstanding'] = max(0, $total_due - $student_summary['total_paid']);
+        }
+    }
 } catch (PDOException $e) {
     // Fail silently, stats will remain 0
     error_log("Failed to fetch statistics: " . $e->getMessage());
@@ -189,8 +213,45 @@ try {
                         </div>
                     </div>
                     
-                    <!-- Quick Stats -->
-                    <?php if ($_SESSION['user_role'] !== 'student'): ?>
+                    <!-- Quick Stats / Student Summary -->
+                    <?php if ($_SESSION['user_role'] === 'student'): ?>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-wallet me-2"></i>At a Glance</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 text-center border-end">
+                                            <div class="py-2">
+                                                <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                                                <h4 class="text-success"><?php echo formatCurrency($student_summary['total_paid']); ?></h4>
+                                                <p class="text-muted mb-0">Total Paid</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 text-center border-end">
+                                            <div class="py-2">
+                                                <i class="fas fa-exclamation-circle fa-2x mb-2 <?php echo $student_summary['outstanding'] > 0 ? 'text-danger' : 'text-success'; ?>"></i>
+                                                <h4 class="<?php echo $student_summary['outstanding'] > 0 ? 'text-danger' : 'text-success'; ?>">
+                                                    <?php echo formatCurrency($student_summary['outstanding']); ?>
+                                                </h4>
+                                                <p class="text-muted mb-0">Outstanding Balance</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 text-center">
+                                            <div class="py-2">
+                                                <i class="fas fa-calendar-alt fa-2x mb-2 text-primary"></i>
+                                                <h4 class="text-primary"><?php echo sanitizeInput($academic_year); ?></h4>
+                                                <p class="text-muted mb-0">Current Session</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php else: ?>
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="card">

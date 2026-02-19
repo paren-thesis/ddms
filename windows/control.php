@@ -44,11 +44,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $success_message = "Preference saved. You can change your password later.";
         } elseif (!empty($new_password) && !empty($confirm_password)) {
             if ($new_password === $confirm_password) {
-                $hash = hashPassword($new_password);
-                $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?");
-                $stmt->execute([$hash, $_SESSION['user_id']]);
-                $_SESSION['must_change_password'] = false;
-                $success_message = "Password updated successfully.";
+                // Check if the new password is the same as current
+                $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE user_id = ?");
+                $stmt->execute([$_SESSION['user_id']]);
+                $user = $stmt->fetch();
+                
+                if ($user && verifyPassword($new_password, $user['password_hash'])) {
+                    $error_message = "Your new password must be different from your current one.";
+                } else {
+                    $hash = hashPassword($new_password);
+                    $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?");
+                    $stmt->execute([$hash, $_SESSION['user_id']]);
+                    $_SESSION['must_change_password'] = false;
+                    $success_message = "Password updated successfully.";
+                }
             } else {
                 $error_message = "New passwords do not match.";
             }
@@ -343,6 +352,21 @@ try {
                         </div>
                         <?php endif; ?>
                         
+                        <?php if (in_array('settings', $user_permissions)): ?>
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Dues & Sessions</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calendar-check fa-3x mb-3" style="color: var(--orange-brown);"></i>
+                                    <p>Manage academic years and define dues categories for the department.</p>
+                                    <a href="settings.php" class="btn btn-primary w-100">Access Settings</a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
                         <div class="col-md-4 mb-4">
                             <div class="card h-100">
                                 <div class="card-header">
@@ -366,21 +390,6 @@ try {
                                     <i class="fas fa-shield-alt fa-3x mb-3" style="color: var(--blue);"></i>
                                     <p>Track all system activities and user actions for security auditing.</p>
                                     <a href="audit_logs.php" class="btn btn-primary w-100">Access Audit Logs</a>
-                                </div>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <?php if (in_array('settings', $user_permissions)): ?>
-                        <div class="col-md-4 mb-4">
-                            <div class="card h-100">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Dues & Sessions</h5>
-                                </div>
-                                <div class="card-body text-center">
-                                    <i class="fas fa-calendar-check fa-3x mb-3" style="color: var(--orange-brown);"></i>
-                                    <p>Manage academic years and define dues categories for the department.</p>
-                                    <a href="settings.php" class="btn btn-primary w-100">Access Settings</a>
                                 </div>
                             </div>
                         </div>

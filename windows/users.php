@@ -240,8 +240,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo = getDBConnection();
         $pdo->beginTransaction();
         
-        // Update user password
-        $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE user_id = ?");
+        // Update user password and unlock account
+        $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, must_change_password = 1, is_locked = 0 WHERE user_id = ?");
         $stmt->execute([$hash, $user_id]);
         
         // Mark request as completed

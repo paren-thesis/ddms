@@ -18,6 +18,9 @@ if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod', 'cashier
     redirect('login.php');
 }
 
+// Log that reports window was viewed
+logActivity('VIEW_REPORTS');
+
 $error_message = '';
 $success_message = '';
 // Get filter parameters

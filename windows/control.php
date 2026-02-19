@@ -20,9 +20,13 @@ if (!isLoggedIn()) {
 
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+    logActivity('LOGOUT');
     session_destroy();
     redirect('login.php');
 }
+
+// Log that dashboard was opened
+logActivity('OPEN_DASHBOARD');
 
 // Handle Password Change / Prompt
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_password_prompt') {
@@ -338,6 +342,19 @@ try {
                             </div>
                         </div>
                         <?php endif; ?>
+                        
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>My Activity</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    <i class="fas fa-history fa-3x mb-3" style="color: var(--blue);"></i>
+                                    <p>View your personal history of actions and system interactions.</p>
+                                    <a href="my_activity.php" class="btn btn-primary w-100">View My Activity</a>
+                                </div>
+                            </div>
+                        </div>
                         
                         <?php if (in_array('audit_logs', $user_permissions)): ?>
                         <div class="col-md-4 mb-4">

@@ -794,10 +794,13 @@ try {
 try {
     $stmt = $pdo->prepare("SELECT programme_id, programme_name, programme_code FROM programmes WHERE status = 'Active' ORDER BY programme_name");
     $stmt->execute();
-    $programmes = $stmt->fetchAll();
+        $programmes = $stmt->fetchAll();
 } catch (PDOException $e) {
     $programmes = [];
 }
+
+// Log that students window was viewed
+logActivity('VIEW_STUDENTS');
 
 // Get academic years for filter
 try {

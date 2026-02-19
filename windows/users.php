@@ -16,9 +16,12 @@ require_once '../includes/functions.php';
 require_once '../includes/email_helper.php';
 
 // Check if user is logged in and is admin
-if (!isLoggedIn() || $_SESSION['user_role'] !== 'admin') {
-    redirect('login.php');
+if (!isLoggedIn() || !in_array($_SESSION['user_role'], ['admin', 'hod'])) {
+    redirect('control.php');
 }
+
+// Log that user management window was viewed
+logActivity('VIEW_USERS');
 
 $error_message = '';
 $success_message = '';

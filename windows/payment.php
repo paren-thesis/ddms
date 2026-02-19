@@ -231,6 +231,9 @@ try {
     $total_pages = 0;
 }
 
+// Log that payments window was viewed
+logActivity('VIEW_PAYMENTS');
+
 // Fetch session-based balance summary for students
 $balance_summary = [];
 if ($_SESSION['user_role'] === 'student') {

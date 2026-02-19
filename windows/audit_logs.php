@@ -73,8 +73,11 @@ try {
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    $logs = $stmt->fetchAll();
+    $logs = $stmt->fetchAll(); // Corrected from $count_stmt->fetchAll()
     
+    // Log that audit logs window was viewed
+    logActivity('VIEW_AUDIT_LOGS');
+
     // Get unique actions for filter
     $actions_stmt = $pdo->query("SELECT DISTINCT action FROM audit_logs");
     $all_actions = $actions_stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -253,14 +256,36 @@ try {
 
     <!-- Details Modal -->
     <div class="modal fade" id="detailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Log Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>Activity Detail Comparison</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <pre id="detailsJson" class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"></pre>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th style="width: 30%;">Field Name</th>
+                                    <th style="width: 35%;">Previous Value</th>
+                                    <th style="width: 35%;">New Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparisonTableBody">
+                                <!-- Data injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="noDataMessage" class="p-4 text-center text-muted d-none">
+                        No field-level changes recorded for this action.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <div class="small text-muted w-100 mb-2">
+                        <i class="fas fa-desktop me-1"></i> Device: <span id="logUserAgent" class="text-truncate d-inline-block" style="max-width: 600px;"></span>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -269,13 +294,56 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+        
         function viewDetails(log) {
-            const details = {
-                old: log.old_values ? JSON.parse(log.old_values) : null,
-                new: log.new_values ? JSON.parse(log.new_values) : null,
-                userAgent: log.user_agent
-            };
-            document.getElementById('detailsJson').textContent = JSON.serialize ? JSON.serialize(details, null, 2) : JSON.stringify(details, null, 2);
+            const tbody = document.getElementById('comparisonTableBody');
+            const noDataMsg = document.getElementById('noDataMessage');
+            const userAgentEl = document.getElementById('logUserAgent');
+            
+            tbody.innerHTML = '';
+            userAgentEl.textContent = log.user_agent || 'Unknown';
+            
+            let oldVals = {};
+            let newVals = {};
+            
+            try {
+                oldVals = log.old_values ? JSON.parse(log.old_values) : {};
+                newVals = log.new_values ? JSON.parse(log.new_values) : {};
+            } catch(e) { console.error("Parse error", e); }
+
+            // Collect all unique keys from both objects
+            const allKeys = [...new Set([...Object.keys(oldVals), ...Object.keys(newVals)])];
+            
+            if (allKeys.length === 0) {
+                noDataMsg.classList.remove('d-none');
+                tbody.closest('table').classList.add('d-none');
+            } else {
+                noDataMsg.classList.add('d-none');
+                tbody.closest('table').classList.remove('d-none');
+                
+                allKeys.forEach(key => {
+                    const oldV = oldVals[key] !== undefined ? oldVals[key] : '-';
+                    const newV = newVals[key] !== undefined ? newVals[key] : '-';
+                    
+                    // Simple formatting for dates or nested objects
+                    const formatVal = (v) => {
+                        if (v === null || v === undefined) return '-';
+                        if (typeof v === 'object') return JSON.stringify(v);
+                        return v;
+                    };
+
+                    const row = document.createElement('tr');
+                    const isChanged = formatVal(oldV) !== formatVal(newV);
+                    
+                    row.innerHTML = `
+                        <td class="fw-bold text-muted">${key.replace(/_/g, ' ').toUpperCase()}</td>
+                        <td class="text-danger small">${formatVal(oldV)}</td>
+                        <td class="${isChanged ? 'text-success fw-bold' : 'text-dark'} small">${formatVal(newV)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            
             detailsModal.show();
         }
     </script>

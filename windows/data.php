@@ -597,6 +597,7 @@ function handleEditStudent() {
     $session_type = sanitizeInput($_POST['session_type'] ?? 'Regular');
     $academic_year = sanitizeInput($_POST['current_academic_year'] ?? '');
     $programme_id = sanitizeInput($_POST['programme_id'] ?? '');
+    $status = sanitizeInput($_POST['status'] ?? 'Active');
     
     if (empty($student_id) || empty($index_no) || empty($first_name) || empty($email)) {
         $error_message = 'Please fill in all required fields.';
@@ -630,8 +631,8 @@ function handleEditStudent() {
         }
         
         // Update student
-        $stmt = $pdo->prepare("UPDATE students SET index_no = ?, first_name = ?, last_name = ?, email = ?, phone = ?, programme_id = ?, programme_level = ?, session_type = ?, current_academic_year = ? WHERE student_id = ?");
-        $stmt->execute([$index_no, $first_name, $last_name, $email, $phone, $programme_id, $prog_level, $session_type, $academic_year, $student_id]);
+        $stmt = $pdo->prepare("UPDATE students SET index_no = ?, first_name = ?, last_name = ?, email = ?, phone = ?, programme_id = ?, programme_level = ?, session_type = ?, current_academic_year = ?, status = ? WHERE student_id = ?");
+        $stmt->execute([$index_no, $first_name, $last_name, $email, $phone, $programme_id, $prog_level, $session_type, $academic_year, $status, $student_id]);
         
         logActivity('EDIT_STUDENT', 'students', $student_id, null, ['index_no' => $index_no]);
         
@@ -1091,7 +1092,8 @@ try {
                                                             '<?php echo addslashes($my_data['current_academic_year']); ?>',
                                                             '<?php echo addslashes($my_data['programme_id']); ?>',
                                                             '<?php echo addslashes($my_data['programme_level']); ?>',
-                                                            '<?php echo addslashes($my_data['session_type']); ?>'
+                                                            '<?php echo addslashes($my_data['session_type']); ?>',
+                                                            '<?php echo addslashes($my_data['status']); ?>'
                                                         )">
                                                             <i class="fas fa-address-book me-2"></i>Update Contact
                                                         </button>
@@ -1244,7 +1246,8 @@ try {
                                                             '<?php echo addslashes($student['current_academic_year']); ?>',
                                                             '<?php echo addslashes($student['programme_id']); ?>',
                                                             '<?php echo addslashes($student['programme_level']); ?>',
-                                                            '<?php echo addslashes($student['session_type']); ?>'
+                                                            '<?php echo addslashes($student['session_type']); ?>',
+                                                            '<?php echo addslashes($student['status']); ?>'
                                                         )">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
@@ -1393,6 +1396,13 @@ try {
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
+                                        <div class="mb-3">
+                                            <label for="edit_status" class="form-label">Status</label>
+                                            <select class="form-control" id="edit_status" name="status">
+                                                <option value="Active">Active</option>
+                                                <option value="Inactive">Inactive</option>
+                                            </select>
+                                        </div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="modal-footer">
@@ -1416,8 +1426,8 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function editStudent(studentId, indexNo, firstName, lastName, email, phone, academicYear, programmeId, level, session) {
-            console.log('Editing student:', {studentId, indexNo, firstName, lastName, email, phone, academicYear, programmeId, level, session});
+        function editStudent(studentId, indexNo, firstName, lastName, email, phone, academicYear, programmeId, level, session, status = 'Active') {
+            console.log('Editing student:', {studentId, indexNo, firstName, lastName, email, phone, academicYear, programmeId, level, session, status});
             
             const setVal = (id, val) => {
                 const el = document.getElementById(id);
@@ -1434,6 +1444,7 @@ try {
             setVal('edit_programme_id', programmeId);
             setVal('edit_programme_level', level);
             setVal('edit_session_type', session);
+            setVal('edit_status', status);
             
             // Clear password field if it exists
             const passEl = document.getElementById('edit_password');

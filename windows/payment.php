@@ -153,7 +153,7 @@ try {
 
 // Get students for dropdown
 try {
-    $stmt = $pdo->prepare("SELECT student_id, index_no, first_name, last_name FROM students WHERE deleted_at IS NULL ORDER BY first_name, last_name");
+    $stmt = $pdo->prepare("SELECT student_id, index_no, first_name, last_name FROM students WHERE deleted_at IS NULL AND status = 'Active' AND is_graduated = 0 ORDER BY first_name, last_name");
     $stmt->execute();
     $students = $stmt->fetchAll();
 } catch (PDOException $e) {

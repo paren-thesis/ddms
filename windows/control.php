@@ -76,8 +76,8 @@ $email = $_SESSION['email'] ?? '';
 
 // Define role-based permissions
 $role_permissions = [
-    'admin' => ['data', 'payment', 'report', 'users', 'audit_logs', 'settings'],
-    'hod' => ['data', 'payment', 'report', 'audit_logs', 'settings'],
+    'admin' => ['data', 'payment', 'report', 'users', 'audit_logs', 'settings', 'progression'],
+    'hod' => ['data', 'payment', 'report', 'audit_logs', 'settings', 'progression'],
     'cashier' => ['payment', 'report', 'settings'],
     'supervisor' => ['data', 'payment', 'report', 'audit_logs'],
     'student' => ['data', 'payment']
@@ -393,6 +393,21 @@ try {
                                     <i class="fas fa-chart-bar fa-3x mb-3" style="color: var(--yellow);"></i>
                                     <p>Generate reports, view analytics, and export data.</p>
                                     <a href="report.php" class="btn btn-primary w-100">Access Report Window</a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (in_array('progression', $user_permissions)): ?>
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 shadow-sm border-danger">
+                                <div class="card-header bg-danger text-white">
+                                    <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Academic Progression</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    <i class="fas fa-forward fa-3x mb-3 text-danger"></i>
+                                    <p>Handle end-of-year promotions, graduations, and returning Top-Up students.</p>
+                                    <a href="progression.php" class="btn btn-danger w-100">Access Progression</a>
                                 </div>
                             </div>
                         </div>

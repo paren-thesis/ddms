@@ -320,6 +320,9 @@ try {
                             </div>
                         </div>
                     </div>
+                    
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -446,6 +449,11 @@ try {
                     document.getElementById('deleteDueForm').submit();
                 }
             });
+        }
+
+        function deleteSession(id) {
+            // Implementation for session deletion
+            alert('Cannot delete sessions. You can only mark them as inactive.');
         }
     </script>
 </body>

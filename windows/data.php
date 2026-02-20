@@ -797,15 +797,16 @@ try {
     $total_records = $count_stmt->fetchColumn();
     $total_pages = ceil($total_records / $records_per_page);
     
-    // Fetch students with LIMIT and OFFSET
-    $sql = "SELECT s.*, p.programme_name, p.programme_code 
-            FROM students s 
-            LEFT JOIN programmes p ON s.programme_id = p.programme_id 
-            $where_clause 
-            ORDER BY s.first_name, s.last_name
-            LIMIT $records_per_page OFFSET $offset";
+    // Fetch students
+    // Build query with filters
+    $query = "SELECT s.*, s.is_graduated, p.programme_name, p.programme_code 
+              FROM students s 
+              LEFT JOIN programmes p ON s.programme_id = p.programme_id 
+              $where_clause 
+              ORDER BY s.first_name, s.last_name
+              LIMIT $records_per_page OFFSET $offset";
     
-    $stmt = $pdo->prepare($sql);
+    $stmt = $pdo->prepare($query);
     $stmt->execute($params);
     $students = $stmt->fetchAll();
     
@@ -1230,9 +1231,13 @@ try {
                                                     <td><?php echo sanitizeInput($student['programme_name']); ?></td>
                                                     <td><?php echo sanitizeInput($student['current_academic_year']); ?></td>
                                                     <td>
-                                                        <span class="badge bg-<?php echo $student['status'] == 'Active' ? 'success' : 'secondary'; ?>">
-                                                            <?php echo sanitizeInput($student['status']); ?>
-                                                        </span>
+                                                        <?php if (isset($student['is_graduated']) && $student['is_graduated'] == 1): ?>
+                                                            <span class="badge bg-dark">Graduated</span>
+                                                        <?php else: ?>
+                                                            <span class="badge bg-<?php echo $student['status'] == 'Active' ? 'success' : 'secondary'; ?>">
+                                                                <?php echo sanitizeInput($student['status']); ?>
+                                                            </span>
+                                                        <?php endif; ?>
                                                     </td>
                                                     <?php if (!in_array($_SESSION['user_role'], ['student'])): ?>
                                                     <td>

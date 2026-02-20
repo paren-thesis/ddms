@@ -70,5 +70,6 @@ function confirmLogout(logoutUrl) {
             window.location.href = logoutUrl;
         }
     });
+    return false;
 }
 </script>

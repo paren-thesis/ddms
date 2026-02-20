@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - My Activity
+ * HTU COMPSSA DDMS - My Activity
  * Individual user activity history
  */
 
@@ -238,7 +238,7 @@ logActivity('VIEW_MY_ACTIVITY');
     </main>
 
     <footer class="text-center py-4 text-muted small">
-        &copy; <?php echo date('Y'); ?> HTU COMPSSA CODEFEST - Dues Data Management System
+        &copy; <?php echo date('Y'); ?> HTU COMPSSA DDMS - Dues Data Management System
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

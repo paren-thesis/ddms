@@ -22,7 +22,7 @@ A comprehensive web-based application for managing departmental dues, student re
 
 ## 🎯 Overview
 
-The DDMS is a PHP-based web application developed for the HTU COMPSSA Codefest 2025. It provides a complete solution for:
+The DDMS is a PHP-based web application developed for the HTU COMPSSA DDMS. It provides a complete solution for:
 
 - Managing student records and dues
 - Processing and tracking payments
@@ -335,7 +335,7 @@ Returns a PDO instance with:
 
 ## 📄 License
 
-Built for **HTU COMPSSA Codefest 2025**
+Built for **HTU COMPSSA DDMS**
 
 ---
 

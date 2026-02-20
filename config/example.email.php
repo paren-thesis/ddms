@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Email Configuration
+ * HTU COMPSSA DDMS - Email Configuration
  * PHPMailer SMTP settings
  * 
  * Update these settings with your actual email credentials.

@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Shared Modals
+ * HTU COMPSSA DDMS - Shared Modals
  * Centralized confirmation dialogs for a consistent UI
  */
 ?>

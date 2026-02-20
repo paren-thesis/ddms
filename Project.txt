@@ -1,5 +1,5 @@
 Page 1:
-HTU COMPSSA CODEFEST 2024
+HTU COMPSSA DDMS 2024
 IT SOFTWARE SOLUTIONS FOR BUSINESS
 Style Guide
 
@@ -59,7 +59,7 @@ Logo_Worldskills_Ghana.png
 
 HTU Codefest 24 - Test Project.pdf
 Page 1:
-HTU COMPSSA CODEFEST 2024
+HTU COMPSSA DDMS 2024
 IT SOFTWARE SOLUTIONS FOR BUSINESS
 Test Project
 Duration: 10 Hours
@@ -146,7 +146,7 @@ Provide a user guide, technical description, ERD, and application structure diag
 
 HTU Codefest 25 - Introduction.pdf
 Page 1:
-HTU COMPSSA CODEFEST 2025
+HTU COMPSSA DDMS
 IT SOFTWARE SOLUTIONS FOR BUSINESS
 Introduction and Overview
 

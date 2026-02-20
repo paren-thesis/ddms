@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Data Window (Students)
+ * HTU COMPSSA DDMS - Data Window (Students)
  * Student data management and CSV import functionality
  * 
  * Features:

@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Header Component
+ * HTU COMPSSA DDMS - Header Component
  * Common header for all windows with logo and title
  */
 

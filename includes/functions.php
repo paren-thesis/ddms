@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Common Functions
+ * HTU COMPSSA DDMS - Common Functions
  * Utility functions used throughout the application
  */
 

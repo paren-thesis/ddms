@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Audit Log Window
+ * HTU COMPSSA DDMS - Audit Log Window
  * View and manage system audit trails
  */
 

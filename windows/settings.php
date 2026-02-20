@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Settings Window
+ * HTU COMPSSA DDMS - Settings Window
  * Manage Academic Sessions and Dues Categories
  */
 

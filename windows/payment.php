@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Payment Window
+ * HTU COMPSSA DDMS - Payment Window
  * Dues payment processing and history
  * 
  * Features:

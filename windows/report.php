@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Report Window
+ * HTU COMPSSA DDMS - Report Window
  * Reporting and analytics for dues and students
  * 
  * Features:

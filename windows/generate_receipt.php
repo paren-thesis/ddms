@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * HTU COMPSSA CODEFEST 2025 - PDF Receipt Generator
+ * HTU COMPSSA DDMS - PDF Receipt Generator
  * Generates an official receipt modeled after the GCB format
  */
 

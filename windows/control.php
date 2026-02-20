@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Control Window
+ * HTU COMPSSA DDMS - Control Window
  * Main navigation hub for the application
  * 
  * Features:

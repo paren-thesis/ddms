@@ -1,4 +1,4 @@
--- HTU COMPSSA CODEFEST 2025 - Complete Database Setup
+-- HTU COMPSSA DDMS - Complete Database Setup
 -- Departmental Dues Management System (Overhaul Version)
 
 CREATE DATABASE IF NOT EXISTS ddms_database;

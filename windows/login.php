@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Login Window
+ * HTU COMPSSA DDMS - Login Window
  * First window shown on startup
  * 
  * Features:

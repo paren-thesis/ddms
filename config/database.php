@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Database Configuration
+ * HTU COMPSSA DDMS - Database Configuration
  * Database connection settings
  */
 

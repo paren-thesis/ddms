@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - User Management Window
+ * HTU COMPSSA DDMS - User Management Window
  * Admin-only user management system
  * 
  * Features:

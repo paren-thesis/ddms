@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Email Helper
+ * HTU COMPSSA DDMS - Email Helper
  * Wrapper functions for PHPMailer
  */
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Password Change Window
+ * HTU COMPSSA DDMS - Password Change Window
  * Password change functionality for existing users
  * 
  * Features:

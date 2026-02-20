@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Departmental Dues Management System
+ * HTU COMPSSA DDMS - Departmental Dues Management System
  * Main Entry Point
  * 
  * This is the main entry point for the application.

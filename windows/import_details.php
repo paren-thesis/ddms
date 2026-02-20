@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Import Details View
+ * HTU COMPSSA DDMS - Import Details View
  * Displays row-by-row results and auto-corrections from a JSON import log.
  */
 
@@ -200,7 +200,7 @@ if ($error_message && !isset($_GET['stay'])) {
 
     <footer class="app-footer text-center py-3 bg-light mt-4">
         <div class="container">
-            <span class="text-muted small">&copy; <?php echo date('Y'); ?> HTU COMPSSA CODEFEST. Detailed Import Data Log.</span>
+            <span class="text-muted small">&copy; <?php echo date('Y'); ?> HTU COMPSSA DDMS. Detailed Import Data Log.</span>
         </div>
     </footer>
 

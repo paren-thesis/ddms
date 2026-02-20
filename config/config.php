@@ -1,6 +1,6 @@
 <?php
 /**
- * HTU COMPSSA CODEFEST 2025 - Application Configuration
+ * HTU COMPSSA DDMS - Application Configuration
  * Main configuration settings
  */
 

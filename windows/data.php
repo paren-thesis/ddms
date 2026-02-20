@@ -743,6 +743,7 @@ $programme_filter = sanitizeInput($_GET['programme'] ?? '');
 $year_filter = sanitizeInput($_GET['year'] ?? '');
 $level_filter = sanitizeInput($_GET['level'] ?? '');
 $session_filter = sanitizeInput($_GET['session'] ?? '');
+$status_filter = sanitizeInput($_GET['status'] ?? '');
 
 // Fetch students with search and filters
 try {
@@ -781,6 +782,15 @@ try {
     if (!empty($session_filter)) {
         $where_conditions[] = "s.session_type = ?";
         $params[] = $session_filter;
+    }
+
+    if (!empty($status_filter)) {
+        if ($status_filter === 'Graduated') {
+            $where_conditions[] = "s.is_graduated = 1";
+        } else {
+            $where_conditions[] = "s.status = ? AND s.is_graduated = 0";
+            $params[] = $status_filter;
+        }
     }
     
     $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
@@ -1176,6 +1186,17 @@ try {
                                                     <?php echo $yr['current_academic_year']; ?>
                                                 </option>
                                             <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="status" class="form-label">Status</label>
+                                        <select class="form-control" id="status" name="status">
+                                            <option value="">All Statuses</option>
+                                            <option value="Active" <?php echo $status_filter == 'Active' ? 'selected' : ''; ?>>Active</option>
+                                            <option value="Inactive" <?php echo $status_filter == 'Inactive' ? 'selected' : ''; ?>>Inactive</option>
+                                            <option value="Graduated" <?php echo $status_filter == 'Graduated' ? 'selected' : ''; ?>>Graduated</option>
                                         </select>
                                     </div>
                                 </div>

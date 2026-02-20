@@ -77,7 +77,8 @@ CREATE TABLE students (
     session_type ENUM('Regular', 'Weekend') DEFAULT 'Regular',
     current_academic_year VARCHAR(20),
     position VARCHAR(50) DEFAULT 'student',
-    status ENUM('Active', 'Inactive', 'Graduated') DEFAULT 'Active',
+    status ENUM('Active', 'Inactive') DEFAULT 'Active',
+    is_graduated TINYINT DEFAULT 0,
     user_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -90,7 +91,7 @@ CREATE TABLE students (
 CREATE TABLE dues (
     due_id INT PRIMARY KEY AUTO_INCREMENT,
     due_name VARCHAR(100) NOT NULL,
-    due_code VARCHAR(50) NOT NULL UNIQUE,
+    due_code VARCHAR(50) NOT NULL,
     programme_id INT NULL,
     amount DECIMAL(10,2) NOT NULL,
     academic_year VARCHAR(20),
@@ -99,7 +100,8 @@ CREATE TABLE dues (
     created_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(user_id),
-    FOREIGN KEY (programme_id) REFERENCES programmes(programme_id)
+    FOREIGN KEY (programme_id) REFERENCES programmes(programme_id),
+    UNIQUE INDEX idx_due_code_year (due_code, academic_year)
 );
 
 -- 7. PAYMENTS TABLE

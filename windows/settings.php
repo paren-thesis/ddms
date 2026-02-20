@@ -104,7 +104,11 @@ function handleAddDue() {
         logActivity('ADD_DUE', 'dues', $pdo->lastInsertId(), null, ['due_code' => $due_code]);
         $success_message = 'Due category added successfully.';
     } catch (PDOException $e) {
-        $error_message = 'Failed to add due: ' . $e->getMessage();
+        if (isset($e->errorInfo[1]) && $e->errorInfo[1] == 1062) {
+            $error_message = "A due category with the Code '{$due_code}' already exists for the '{$academic_year}' academic year.";
+        } else {
+            $error_message = 'Failed to add due: ' . $e->getMessage();
+        }
     }
 }
 

@@ -474,19 +474,12 @@ try {
                     
                     <!-- Action Buttons -->
                     <div class="row mt-4">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="d-grid">
-                                <a href="javascript:void(0)" class="btn btn-secondary" 
-                                   onclick="confirmLogout('?action=logout')">
+                                <a href="?action=logout" class="btn btn-danger py-2" 
+                                   onclick="return confirmLogout(this.href)">
                                     <i class="fas fa-sign-out-alt me-2"></i>Logout
                                 </a>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="d-grid">
-                                <button class="btn btn-danger" onclick="confirmClose()">
-                                    <i class="fas fa-times me-2"></i>Close Application
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -503,19 +496,6 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function confirmClose() {
-            showConfirm({
-                title: 'Close Application',
-                message: 'Are you sure you want to close the application? You will be redirected to the login screen.',
-                confirmBtnText: 'Close',
-                confirmBtnClass: 'btn-danger',
-                onConfirm: function() {
-                    window.close();
-                    // Fallback for browsers that don't allow window.close()
-                    window.location.href = 'login.php';
-                }
-            });
-        }
         // Initialize Charts
         document.addEventListener('DOMContentLoaded', function() {
             <?php if ($_SESSION['user_role'] !== 'student'): ?>
